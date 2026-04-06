@@ -804,9 +804,9 @@ hideBtn.MouseButton1Click:Connect(function()
     if scriptHidden then
         mainContent.Visible = false
         liveScreen.Visible  = false
-        hideBtn.Text        = "🙈"
+        hideBtn.Text        = "👁"
         hideBtn.BackgroundColor3 = Color3.fromRGB(35, 8, 8)
-        showToast("🙈", "تم الإخفاء", "اضغط 👁 للإظهار", Color3.fromRGB(200,80,80), 2)
+        showToast("👁", "تم الإخفاء", "اضغط 👁 للإظهار", Color3.fromRGB(200,80,80), 2)
     else
         mainContent.Visible = true
         if spectating then liveScreen.Visible = true end
