@@ -935,6 +935,79 @@ function lopklib:MakeWindow(Configs)
 		end
 	end; LoadFile()
 
+	-- ══ دالة الإشعار الأزرق ══
+	local function BlueNotify(title, text, duration)
+		local NGui = Instance.new("ScreenGui")
+		NGui.Name = "LOPKStartNotif"
+		NGui.ResetOnSpawn = false
+		NGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		pcall(function() NGui.Parent = game:GetService("CoreGui") end)
+
+		local Frame = Instance.new("Frame")
+		Frame.Size = UDim2.fromOffset(280, 60)
+		Frame.Position = UDim2.new(1, 20, 0, 20)
+		Frame.AnchorPoint = Vector2.new(0, 0)
+		Frame.BackgroundColor3 = Color3.fromRGB(4, 12, 35)
+		Frame.BorderSizePixel = 0
+		Frame.Parent = NGui
+		Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
+
+		local Stroke = Instance.new("UIStroke", Frame)
+		Stroke.Thickness = 1.5
+		Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		local Grad = Instance.new("UIGradient", Stroke)
+		Grad.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 210, 255)),
+		})
+		Grad.Rotation = 90
+
+		local TopLine = Instance.new("Frame", Frame)
+		TopLine.Size = UDim2.new(1, 0, 0, 2)
+		TopLine.BorderSizePixel = 0
+		local TLG = Instance.new("UIGradient", TopLine)
+		TLG.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 210, 255)),
+		})
+
+		local TitleL = Instance.new("TextLabel", Frame)
+		TitleL.Size = UDim2.new(1, -16, 0, 22)
+		TitleL.Position = UDim2.fromOffset(12, 8)
+		TitleL.BackgroundTransparency = 1
+		TitleL.Text = title
+		TitleL.TextColor3 = Color3.fromRGB(100, 210, 255)
+		TitleL.TextSize = 12
+		TitleL.Font = Enum.Font.GothamBold
+		TitleL.TextXAlignment = Enum.TextXAlignment.Left
+
+		local DescL = Instance.new("TextLabel", Frame)
+		DescL.Size = UDim2.new(1, -16, 0, 18)
+		DescL.Position = UDim2.fromOffset(12, 30)
+		DescL.BackgroundTransparency = 1
+		DescL.Text = text
+		DescL.TextColor3 = Color3.fromRGB(180, 230, 255)
+		DescL.TextSize = 10
+		DescL.Font = Enum.Font.Gotham
+		DescL.TextXAlignment = Enum.TextXAlignment.Left
+
+		TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
+			Position = UDim2.new(1, -295, 0, 20)
+		}):Play()
+
+		task.wait(duration)
+
+		local out = TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
+			Position = UDim2.new(1, 20, 0, 20)
+		})
+		out:Play()
+		out.Completed:Wait()
+		NGui:Destroy()
+	end
+
+	-- اشعار 1: يظهر قبل السكربت وينتظر 6 ثواني
+	BlueNotify("⏳ جاري التحميل...", "انتظر 6 ثواني وسيشتغل السكربت", 6)
+
 	local UISizeX, UISizeY = unpack(lopklib.Save.UISize)
 	local MainFrame = InsertTheme(Create("ImageButton", ScreenGui, {
 		Size                   = UDim2.fromOffset(UISizeX, UISizeY),
@@ -2325,82 +2398,12 @@ function lopklib:MakeWindow(Configs)
 	CloseButton.Activated:Connect(Window.CloseBtn)
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 
+	-- اشعار 2: تم التفعيل بعد ما يشتغل السكربت
+	task.spawn(function()
+		BlueNotify("✅ تم التفعيل 😛!", "تم تفعيل السكربت بنجاح!", 4)
+	end)
+
 	return Window
 end
-
--- اشعارات التشغيل
-task.spawn(function()
-	local function BlueNotify(title, text, duration)
-		local NGui = Instance.new("ScreenGui")
-		NGui.Name = "LOPKStartNotif"
-		NGui.ResetOnSpawn = false
-		NGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-		pcall(function() NGui.Parent = game:GetService("CoreGui") end)
-
-		local Frame = Instance.new("Frame")
-		Frame.Size = UDim2.fromOffset(280, 60)
-		Frame.Position = UDim2.new(1, 20, 0, 20)
-		Frame.AnchorPoint = Vector2.new(0, 0)
-		Frame.BackgroundColor3 = Color3.fromRGB(4, 12, 35)
-		Frame.BorderSizePixel = 0
-		Frame.Parent = NGui
-		Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
-
-		local Stroke = Instance.new("UIStroke", Frame)
-		Stroke.Thickness = 1.5
-		Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		local Grad = Instance.new("UIGradient", Stroke)
-		Grad.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 210, 255)),
-		})
-		Grad.Rotation = 90
-
-		local TopLine = Instance.new("Frame", Frame)
-		TopLine.Size = UDim2.new(1, 0, 0, 2)
-		TopLine.BorderSizePixel = 0
-		local TLG = Instance.new("UIGradient", TopLine)
-		TLG.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 210, 255)),
-		})
-
-		local TitleL = Instance.new("TextLabel", Frame)
-		TitleL.Size = UDim2.new(1, -16, 0, 22)
-		TitleL.Position = UDim2.fromOffset(12, 8)
-		TitleL.BackgroundTransparency = 1
-		TitleL.Text = title
-		TitleL.TextColor3 = Color3.fromRGB(100, 210, 255)
-		TitleL.TextSize = 12
-		TitleL.Font = Enum.Font.GothamBold
-		TitleL.TextXAlignment = Enum.TextXAlignment.Left
-
-		local DescL = Instance.new("TextLabel", Frame)
-		DescL.Size = UDim2.new(1, -16, 0, 18)
-		DescL.Position = UDim2.fromOffset(12, 30)
-		DescL.BackgroundTransparency = 1
-		DescL.Text = text
-		DescL.TextColor3 = Color3.fromRGB(180, 230, 255)
-		DescL.TextSize = 10
-		DescL.Font = Enum.Font.Gotham
-		DescL.TextXAlignment = Enum.TextXAlignment.Left
-
-		TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
-			Position = UDim2.new(1, -295, 0, 20)
-		}):Play()
-
-		task.wait(duration)
-
-		local out = TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
-			Position = UDim2.new(1, 20, 0, 20)
-		})
-		out:Play()
-		out.Completed:Wait()
-		NGui:Destroy()
-	end
-
-	BlueNotify("⏳ جاري التحميل...", "انتظر 6 ثواني وسيشتغل السكربت", 6)
-	BlueNotify("✅ تم التفعيل 😛!", "تم تفعيل السكربت بنجاح!", 4)
-end)
 
 return lopklib
