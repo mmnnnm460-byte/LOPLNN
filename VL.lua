@@ -1,4 +1,6 @@
-
+-- ║         LOPK Library  |  Cyan Edition        ║
+-- ║         Theme: Neon Cyan / Deep Purple        ║
+-- ║         Version: 2.0.0                        ║
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService   = game:GetService("UserInputService")
@@ -1204,16 +1206,42 @@ function lopklib:MakeWindow(Configs)
 	end
 
 	function Window:AddMinimizeButton(Configs)
+		local BtnSize = (Configs.Button and Configs.Button.Size) or UDim2.fromOffset(60, 60)
+
 		local Btn = MakeDrag(Create("ImageButton", ScreenGui, {
-			Size               = UDim2.fromOffset(60, 60),
+			Size               = BtnSize,
 			Position           = UDim2.fromScale(0.15, 0.15),
 			BackgroundTransparency = 1,
-			AutoButtonColor    = false
+			AutoButtonColor    = false,
+			ZIndex             = 10
 		}))
-		local Stroke, Corner
+
+		local Corner, Stroke
 		if Configs.Corner then Corner = Make("Corner", Btn); SetProps(Corner, Configs.Corner) end
-		if Configs.Stroke then Stroke = Make("Stroke",  Btn); SetProps(Stroke, Configs.Stroke) end
+
+		-- Cyan stroke مطابق لنمط المكتبة
+		Stroke = InsertTheme(Create("UIStroke", Btn, {
+			Color           = Theme["Color Stroke"],
+			Thickness       = 1.5,
+			ApplyStrokeMode = "Border"
+		}), "Stroke")
+		if Configs.Stroke then SetProps(Stroke, Configs.Stroke) end
+
 		SetProps(Btn, Configs.Button)
+
+		-- انيميشن تكبير / تصغير عند الضغط
+		local OrigSize = Btn.Size
+		Btn.MouseButton1Down:Connect(function()
+			PlayClickSound()
+			CreateTween({Btn, "Size", OrigSize - UDim2.fromOffset(6, 6), 0.1})
+		end)
+		Btn.MouseButton1Up:Connect(function()
+			CreateTween({Btn, "Size", OrigSize, 0.15})
+		end)
+		Btn.MouseLeave:Connect(function()
+			CreateTween({Btn, "Size", OrigSize, 0.15})
+		end)
+
 		Btn.Activated:Connect(Window.Minimize)
 		return { Stroke = Stroke, Corner = Corner, Button = Btn }
 	end
@@ -2371,8 +2399,8 @@ task.spawn(function()
 		NGui:Destroy()
 	end
 
-	BlueNotify(".. 😜..", "تم تفعيل سكربت ", 6)
-	BlueNotify(":<!", "<:!", 5)
+	BlueNotify("⏳ جاري التحميل...", "انتظر 6 ثواني وسيشتغل السكربت", 6)
+	BlueNotify("✅ تم التفعيل 😛!", "تم تفعيل السكربت بنجاح!", 4)
 end)
 
 return lopklib
