@@ -917,6 +917,8 @@ end
 
 --  MakeWindow
 function lopklib:MakeWindow(Configs)
+	lopklib.Tabs = {} -- reset tabs لكل window جديد
+
 	local WTitle    = Configs[1] or Configs.Name  or Configs.Title    or "LOPK Library V2"
 	local WMiniText = Configs[2] or Configs.SubTitle or "Cyan Edition"
 
@@ -1508,21 +1510,22 @@ function lopklib:MakeWindow(Configs)
 		}), "ScrollBar")
 
 		table.insert(ContainerList, Container)
-		if not FirstTab then Container.Parent = Containers end
+		if not FirstTab then
+			Container.Parent = Containers
+		end
 
 		local function Tabs()
-			if Container.Parent then return end
+			if Container.Parent == Containers then return end
 			for _, Frame in pairs(ContainerList) do
 				if Frame:IsA("ScrollingFrame") and Frame ~= Container then
 					Frame.Parent = nil
 				end
 			end
 			Container.Parent = Containers
-			Container.Size   = UDim2.new(1, 0, 1, 150)
+			Container.Size   = UDim2.new(1, 0, 1, 0)
 			for _, Tab in ipairs(lopklib.Tabs) do
 				if Tab.Cont ~= Container then Tab.func:Disable() end
 			end
-			CreateTween({Container,  "Size",             UDim2.new(1, 0, 1, 0), 0.3})
 			CreateTween({LabelTitle, "TextTransparency", 0,   0.35})
 			CreateTween({LabelIcon,  "ImageTransparency",0,   0.35})
 			CreateTween({Selected,   "Size",             UDim2.new(0, 3, 0, 14), 0.35})
@@ -1539,10 +1542,10 @@ function lopklib:MakeWindow(Configs)
 			Container.Parent = nil
 			CreateTween({LabelTitle, "TextTransparency", 0.4, 0.35})
 			CreateTween({LabelIcon,  "ImageTransparency",0.4, 0.35})
-			CreateTween({Selected,   "Size",             UDim2.new(0, 3, 0, 3), 0.35})
+			CreateTween({Selected,   "Size",             UDim2.new(0, 3, 0, 3),  0.35})
 			CreateTween({Selected,   "BackgroundTransparency", 1, 0.35})
 		end
-		function Tab:Enable()  Tabs() end
+		function Tab:Enable() Tabs() end
 		function Tab:Visible(Bool)
 			Funcs:ToggleVisible(TabSelect, Bool)
 			Funcs:ToggleParent(Container, Bool, Containers)
@@ -2398,8 +2401,8 @@ function lopklib:MakeWindow(Configs)
 	CloseButton.Activated:Connect(Window.CloseBtn)
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 
-	-- اشعار 2: تم التفعيل بعد ما يشتغل السكربت
-	task.spawn(function()
+	-- اشعار 2: يظهر بعد ما يشتغل السكربت مباشرة
+	task.delay(0.1, function()
 		BlueNotify("✅ تم التفعيل 😛!", "تم تفعيل السكربت بنجاح!", 4)
 	end)
 
