@@ -697,73 +697,38 @@ function lopklib:SetScale(NewScale)
 	ScreenGui.Scale.Scale = NewScale
 end
 
--- ══════════════════════════════
---  White Shimmer System
--- ══════════════════════════════
-local _shimmerAngle = 0
-local _shimmerTargets = {} -- { instance, type, baseColor }
-
-local function _getBaseColor(inst, itype)
-	if itype == "Stroke"    then return inst.Color
-	elseif itype == "Theme" then
-		local p = inst:GetAttribute("_shimmerBase")
-		if p then return p end
-		local c = GetColor(inst)
-		return c ~= "" and inst[c] or Theme["Color Theme"]
-	elseif itype == "Text"     then return Theme["Color Text"]
-	elseif itype == "DarkText" then return Theme["Color Dark Text"]
-	end
-	return nil
-end
-
-local function RegisterShimmer(inst, itype)
-	local base = _getBaseColor(inst, itype)
-	if base then
-		table.insert(_shimmerTargets, { inst = inst, itype = itype, base = base })
-	end
-end
-
--- تشغيل الـ shimmer
+-- White Shimmer
 task.spawn(function()
+	local angle = 0
 	while true do
-		task.wait(0.03)
-		_shimmerAngle = (_shimmerAngle + 2) % 360
-		local rad   = math.rad(_shimmerAngle)
-		local wave  = (math.sin(rad) + 1) / 2  -- 0 → 1 → 0
-		local white = Color3.new(1, 1, 1)
-
-		for i = #_shimmerTargets, 1, -1 do
-			local t = _shimmerTargets[i]
-			if not t.inst or not t.inst.Parent then
-				table.remove(_shimmerTargets, i)
-				continue
+		task.wait(0.04)
+		angle = (angle + 3) % 360
+		local wave = (math.sin(math.rad(angle)) + 1) / 2
+		for _, val in pairs(lopklib.Instances) do
+			local inst = val.Instance
+			local t    = val.Type
+			if not inst or not inst.Parent then continue end
+			local base, prop
+			if t == "Stroke" then
+				base = Theme["Color Stroke"]; prop = "Color"
+			elseif t == "Theme" then
+				base = Theme["Color Theme"]
+				prop = GetColor(inst)
+			elseif t == "Text" then
+				base = Theme["Color Text"]
+				prop = GetColor(inst)
+			elseif t == "DarkText" then
+				base = Theme["Color Dark Text"]
+				prop = GetColor(inst)
 			end
-			local blended = t.base:Lerp(white, wave * 0.28)
-			local prop = ""
-			if t.itype == "Stroke" then
-				prop = "Color"
-			else
-				prop = GetColor(t.inst)
-			end
-			if prop ~= "" then
-				pcall(function() t.inst[prop] = blended end)
+			if base and prop and prop ~= "" then
+				pcall(function()
+					inst[prop] = base:Lerp(Color3.new(1,1,1), wave * 0.30)
+				end)
 			end
 		end
 	end
 end)
-
--- Override InsertTheme لتسجيل كل عنصر في الـ shimmer
-local _origInsertTheme = InsertTheme
-InsertTheme = function(instance, Type)
-	_origInsertTheme(instance, Type)
-	if Type == "Stroke" or Type == "Theme" or Type == "Text" or Type == "DarkText" then
-		task.defer(function()
-			RegisterShimmer(instance, Type)
-		end)
-	end
-	return instance
-end
-
 
 local NotificationContainer = Create("Frame", ScreenGui, {
 	Name               = "NotificationContainer",
