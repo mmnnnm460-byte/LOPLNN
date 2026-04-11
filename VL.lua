@@ -16,63 +16,63 @@ local lopklib = {
 	Themes = {
 		Darker = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(8,   5,  18)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(18, 10,  38)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5,   3,  15))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(15, 15, 15)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(14,  10,  28),
-			["Color Stroke"]     = Color3.fromRGB(0, 180, 255),
-			["Color Theme"]      = Color3.fromRGB(0, 200, 255),
-			["Color Text"]       = Color3.fromRGB(245, 240, 255),
-			["Color Dark Text"]  = Color3.fromRGB(100, 165, 205),
-			["Color Dark Purple"]= Color3.fromRGB(140, 220, 255),
+			["Color Hub 2"]      = Color3.fromRGB(18, 18, 18),
+			["Color Stroke"]     = Color3.fromRGB(255, 205, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 200, 0),
+			["Color Text"]       = Color3.fromRGB(255, 255, 255),
+			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
+			["Color Dark Purple"]= Color3.fromRGB(255, 230, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(140, 220, 255)
+			["Color Dark Greem"] = Color3.fromRGB(255, 230, 100)
 		},
 		Dark = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(10,   6,  22)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(22,  12,  45)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(8,    4,  18))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(8, 8, 8)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(18, 18, 18)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(8, 8, 8))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(16,  11,  32),
-			["Color Stroke"]     = Color3.fromRGB(180, 110, 255),
-			["Color Theme"]      = Color3.fromRGB(0, 210, 255),
-			["Color Text"]       = Color3.fromRGB(248, 242, 255),
-			["Color Dark Text"]  = Color3.fromRGB(100, 170, 210),
-			["Color Dark Purple"]= Color3.fromRGB(150, 225, 255),
+			["Color Hub 2"]      = Color3.fromRGB(20, 20, 20),
+			["Color Stroke"]     = Color3.fromRGB(255, 210, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 210, 0),
+			["Color Text"]       = Color3.fromRGB(255, 255, 255),
+			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
+			["Color Dark Purple"]= Color3.fromRGB(255, 232, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(150, 225, 255)
+			["Color Dark Greem"] = Color3.fromRGB(255, 232, 100)
 		},
 		Purple = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0,  10,  30)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0,  40, 120)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0,   8,  22))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(15, 15, 15)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(20,  12,  42),
-			["Color Stroke"]     = Color3.fromRGB(0, 220, 255),
-			["Color Theme"]      = Color3.fromRGB(0, 230, 255),
-			["Color Text"]       = Color3.fromRGB(250, 245, 255),
-			["Color Dark Text"]  = Color3.fromRGB(100, 180, 220),
-			["Color Dark Purple"]= Color3.fromRGB(160, 230, 255),
+			["Color Hub 2"]      = Color3.fromRGB(22, 22, 22),
+			["Color Stroke"]     = Color3.fromRGB(255, 215, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 220, 0),
+			["Color Text"]       = Color3.fromRGB(255, 255, 255),
+			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
+			["Color Dark Purple"]= Color3.fromRGB(255, 234, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(160, 230, 255)
+			["Color Dark Greem"] = Color3.fromRGB(255, 234, 100)
 		},
 		Neon = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5,   3,  15)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(20,  10,  40)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(8,   4,  20))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(15, 15, 15)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(12,   8,  26),
-			["Color Stroke"]     = Color3.fromRGB(0, 240, 255),
-			["Color Theme"]      = Color3.fromRGB(0, 245, 255),
-			["Color Text"]       = Color3.fromRGB(255, 250, 255),
-			["Color Dark Text"]  = Color3.fromRGB(110, 190, 230),
-			["Color Dark Purple"]= Color3.fromRGB(170, 235, 255),
+			["Color Hub 2"]      = Color3.fromRGB(15, 15, 15),
+			["Color Stroke"]     = Color3.fromRGB(255, 215, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 218, 0),
+			["Color Text"]       = Color3.fromRGB(255, 255, 255),
+			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
+			["Color Dark Purple"]= Color3.fromRGB(255, 236, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(170, 235, 255)
+			["Color Dark Greem"] = Color3.fromRGB(255, 236, 100)
 		}
 	},
 	Info       = { Version = "2.0.0" },
@@ -703,7 +703,7 @@ end
 task.spawn(function()
 	task.wait(3)
 	local angle = 0
-	local shimmerColor = Color3.fromRGB(180, 235, 255) -- أبيض بنفسجي
+	local shimmerColor = Color3.fromRGB(255, 245, 180) -- أبيض أصفر
 	while true do
 		task.wait(0.04)
 		angle = (angle + 3) % 360
@@ -766,7 +766,7 @@ function lopklib:Notify(Configs)
 
 	local NFrame = Create("Frame", NotificationContainer, {
 		Size                   = UDim2.new(1, 0, 0, 50),
-		BackgroundColor3       = Color3.fromRGB(10, 6, 22),
+		BackgroundColor3       = Color3.fromRGB(15, 15, 15),
 		BackgroundTransparency = 0,
 		BorderSizePixel        = 0,
 		ClipsDescendants       = true
@@ -791,7 +791,7 @@ function lopklib:Notify(Configs)
 		Position           = UDim2.new(0, 46, 0, 7),
 		BackgroundTransparency = 1,
 		Text               = Title,
-		TextColor3         = Color3.fromRGB(220, 250, 255),
+		TextColor3         = Color3.fromRGB(255, 255, 255),
 		TextSize           = 11,
 		Font               = Enum.Font.GothamBold,
 		TextXAlignment     = "Left",
@@ -803,7 +803,7 @@ function lopklib:Notify(Configs)
 		Position           = UDim2.new(0, 46, 0, 23),
 		BackgroundTransparency = 1,
 		Text               = Description,
-		TextColor3         = Color3.fromRGB(120, 180, 210),
+		TextColor3         = Color3.fromRGB(180, 180, 180),
 		TextSize           = 9,
 		Font               = Enum.Font.Gotham,
 		TextXAlignment     = "Left",
@@ -887,7 +887,7 @@ local function BuildParticleSystem(ParticleContainer, MainFrameRef)
 		local sy   = cs.Y + 15
 		local size = math.random(Config.ParticleSize.Min, Config.ParticleSize.Max)
 		local spd  = math.random(Config.ParticleSpeed.Min, Config.ParticleSpeed.Max)
-		local col  = Theme and Theme["Color Theme"] or Color3.fromRGB(0, 220, 255)
+		local col  = Theme and Theme["Color Theme"] or Color3.fromRGB(255, 215, 0)
 
 		local P = Instance.new("Frame")
 		P.Size                   = UDim2.fromOffset(size, size)
@@ -985,7 +985,7 @@ function lopklib:MakeWindow(Configs)
 		Frame.Size = UDim2.fromOffset(280, 60)
 		Frame.Position = UDim2.new(1, 20, 0, 20)
 		Frame.AnchorPoint = Vector2.new(0, 0)
-		Frame.BackgroundColor3 = Color3.fromRGB(10, 6, 22)
+		Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 		Frame.BorderSizePixel = 0
 		Frame.Parent = NGui
 		Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
@@ -995,8 +995,8 @@ function lopklib:MakeWindow(Configs)
 		Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		local Grad = Instance.new("UIGradient", Stroke)
 		Grad.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 150, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(140, 215, 255)),
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 0)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 228, 100)),
 		})
 		Grad.Rotation = 90
 
@@ -1005,8 +1005,8 @@ function lopklib:MakeWindow(Configs)
 		TopLine.BorderSizePixel = 0
 		local TLG = Instance.new("UIGradient", TopLine)
 		TLG.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 150, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(140, 215, 255)),
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 0)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 228, 100)),
 		})
 
 		local TitleL = Instance.new("TextLabel", Frame)
@@ -1014,7 +1014,7 @@ function lopklib:MakeWindow(Configs)
 		TitleL.Position = UDim2.fromOffset(12, 8)
 		TitleL.BackgroundTransparency = 1
 		TitleL.Text = title
-		TitleL.TextColor3 = Color3.fromRGB(140, 215, 255)
+		TitleL.TextColor3 = Color3.fromRGB(255, 228, 100)
 		TitleL.TextSize = 12
 		TitleL.Font = Enum.Font.GothamBold
 		TitleL.TextXAlignment = Enum.TextXAlignment.Left
@@ -1024,7 +1024,7 @@ function lopklib:MakeWindow(Configs)
 		DescL.Position = UDim2.fromOffset(12, 30)
 		DescL.BackgroundTransparency = 1
 		DescL.Text = text
-		DescL.TextColor3 = Color3.fromRGB(160, 225, 255)
+		DescL.TextColor3 = Color3.fromRGB(255, 231, 100)
 		DescL.TextSize = 10
 		DescL.Font = Enum.Font.Gotham
 		DescL.TextXAlignment = Enum.TextXAlignment.Left
@@ -1082,13 +1082,13 @@ function lopklib:MakeWindow(Configs)
 	local BlueGrad = Create("UIGradient", BlueOverlay, {
 		Rotation  = 120,
 		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5,   3,  12)),
-			ColorSequenceKeypoint.new(0.50, Color3.fromRGB(30,  10,  60)),
-			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(8,   4,  20)),
+			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5,  5,  5)),
+			ColorSequenceKeypoint.new(0.50, Color3.fromRGB(18, 18, 18)),
+			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5,  5,  5)),
 		}),
 		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.45),
-			NumberSequenceKeypoint.new(1, 0.55),
+			NumberSequenceKeypoint.new(0, 0.40),
+			NumberSequenceKeypoint.new(1, 0.50),
 		})
 	})
 
@@ -1427,7 +1427,7 @@ function lopklib:MakeWindow(Configs)
 		local Screen = InsertTheme(Create("Frame", MainFrame, {
 			BackgroundTransparency = 0.5,
 			Active                 = true,
-			BackgroundColor3       = Color3.fromRGB(8, 4, 18),
+			BackgroundColor3       = Color3.fromRGB(10, 10, 10),
 			Size                   = UDim2.new(1, 0, 1, 0),
 			Name                   = "Dialog"
 		}), "Stroke")
@@ -2085,7 +2085,7 @@ function lopklib:MakeWindow(Configs)
 
 			local SliderIcon = Create("Frame", SliderBar, {
 				Size              = UDim2.new(0, 6, 0, 14),
-				BackgroundColor3  = Color3.fromRGB(220, 245, 255),
+				BackgroundColor3  = Color3.fromRGB(255, 230, 80),
 				Position          = UDim2.fromScale(0.3, 0.5),
 				AnchorPoint       = Vector2.new(0.5, 0.5),
 				BackgroundTransparency = 0.1
@@ -2276,7 +2276,7 @@ function lopklib:MakeWindow(Configs)
 			local BannerArea = Create("ImageLabel", CardFrame, {
 				Size              = UDim2.new(1, 0, 0.28, 0),
 				Image             = BannerImage,
-				BackgroundColor3  = Color3.fromRGB(20, 8, 45),
+				BackgroundColor3  = Color3.fromRGB(18, 18, 18),
 				BackgroundTransparency = BannerImage ~= "" and 1 or 0,
 				ScaleType         = Enum.ScaleType.Crop
 			}) Make("Corner", BannerArea, UDim.new(0, 12))
@@ -2285,8 +2285,8 @@ function lopklib:MakeWindow(Configs)
 				Create("UIGradient", BannerArea, {
 					Rotation = -15,
 					Color    = ColorSequence.new({
-						ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 10, 55)),
-						ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 20, 100))
+						ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 15)),
+						ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 25))
 					})
 				})
 			end
