@@ -1,3 +1,7 @@
+-- ║         LOPK Library  |  Cyan Edition        ║
+-- ║         Theme: Neon Cyan / Deep Purple        ║
+-- ║         Version: 2.0.0                        ║
+
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService   = game:GetService("UserInputService")
 local TweenService       = game:GetService("TweenService")
@@ -12,63 +16,63 @@ local lopklib = {
 	Themes = {
 		Darker = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(10, 10, 10)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 0, 0))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(15, 15, 15)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(15, 15, 15),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
-			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
+			["Color Hub 2"]      = Color3.fromRGB(18, 18, 18),
+			["Color Stroke"]     = Color3.fromRGB(255, 205, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 200, 0),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
-			["Color Dark Purple"]= Color3.fromRGB(220, 220, 220),
+			["Color Dark Purple"]= Color3.fromRGB(255, 230, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(200, 200, 200)
+			["Color Dark Greem"] = Color3.fromRGB(255, 230, 100)
 		},
 		Dark = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(12, 12, 12)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 0, 0))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(8, 8, 8)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(18, 18, 18)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(8, 8, 8))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(18, 18, 18),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
-			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
+			["Color Hub 2"]      = Color3.fromRGB(20, 20, 20),
+			["Color Stroke"]     = Color3.fromRGB(255, 210, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 210, 0),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
-			["Color Dark Purple"]= Color3.fromRGB(220, 220, 220),
+			["Color Dark Purple"]= Color3.fromRGB(255, 232, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(200, 200, 200)
+			["Color Dark Greem"] = Color3.fromRGB(255, 232, 100)
 		},
 		Purple = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(10, 10, 10)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 0, 0))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(15, 15, 15)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(20, 20, 20),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
-			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
+			["Color Hub 2"]      = Color3.fromRGB(22, 22, 22),
+			["Color Stroke"]     = Color3.fromRGB(255, 215, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 220, 0),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
-			["Color Dark Purple"]= Color3.fromRGB(220, 220, 220),
+			["Color Dark Purple"]= Color3.fromRGB(255, 234, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(200, 200, 200)
+			["Color Dark Greem"] = Color3.fromRGB(255, 234, 100)
 		},
 		Neon = {
 			["Color Hub 1"]      = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(10, 10, 10)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 0, 0))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(15, 15, 15)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
-			["Color Hub 2"]      = Color3.fromRGB(12, 12, 12),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
-			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
+			["Color Hub 2"]      = Color3.fromRGB(15, 15, 15),
+			["Color Stroke"]     = Color3.fromRGB(255, 215, 0),
+			["Color Theme"]      = Color3.fromRGB(255, 218, 0),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(180, 180, 180),
-			["Color Dark Purple"]= Color3.fromRGB(220, 220, 220),
+			["Color Dark Purple"]= Color3.fromRGB(255, 236, 100),
 			["Color Hub 9"]      = Color3.fromRGB(0,   0,   0),
-			["Color Dark Greem"] = Color3.fromRGB(200, 200, 200)
+			["Color Dark Greem"] = Color3.fromRGB(255, 236, 100)
 		}
 	},
 	Info       = { Version = "2.0.0" },
@@ -234,6 +238,7 @@ local lopklib = {
 	end)()
 }
 
+--  Core Utilities
 local ViewportSize = workspace.CurrentCamera.ViewportSize
 local UIScale = ViewportSize.Y / 450
 
@@ -300,6 +305,7 @@ local SetProps, SetChildren, InsertTheme, Create do
 	pcall(Save, "lopk library V2.json")
 end
 
+--  Callback / Connection System
 local Funcs = {}
 function Funcs:InsertCallback(tab, func)
 	if type(func) == "function" then table.insert(tab, func) end
@@ -339,6 +345,7 @@ function Funcs:GetCallback(Configs, index)
 	return { func }
 end
 
+-- Connections
 local Connections, Connection = {}, lopklib.Connection
 local function NewConnectionList(List)
 	for _, CoName in ipairs(List) do
@@ -371,6 +378,7 @@ function Connection:FireConnection(CoName, ...)
 end
 NewConnectionList({"FlagsChanged","ThemeChanged","FileSaved","ThemeChanging","OptionAdded"})
 
+-- Flags
 local GetFlag, SetFlag, CheckFlag
 CheckFlag = function(Name) return type(Name) == "string" and Flags[Name] ~= nil end
 GetFlag   = function(Name) return type(Name) == "string" and Flags[Name] end
@@ -394,8 +402,9 @@ Connection.FlagsChanged:Connect(function(Flag, Value)
 	end
 end)
 
+--  ScreenGui
 local ScreenGui = Create("ScreenGui", CoreGui, {
-	Name = "LOPKBlackLib",
+	Name = "LOPKCyanLib",
 }, {
 	Create("UIScale", { Scale = UIScale, Name = "Scale" })
 })
@@ -432,6 +441,7 @@ local function CreateTween(Configs)
 	return Tween
 end
 
+--  Click Sound
 local _SoundService = game:GetService("SoundService")
 local _ClickSound = Instance.new("Sound")
 _ClickSound.SoundId  = "rbxassetid://115942274494895"
@@ -496,6 +506,7 @@ local function Make(Ele, Inst, props, ...)
 	return lopklib.Elements[Ele](Inst, props, ...)
 end
 
+--  Element Factories
 AddEle("Corner", function(parent, CornerRadius)
 	return SetProps(Create("UICorner", parent, {
 		CornerRadius = CornerRadius or UDim.new(0, 7)
@@ -550,6 +561,7 @@ AddEle("Gradient", function(parent, props, ...)
 	}), props), "Gradient")
 end)
 
+--  ButtonFrame helper
 local LabelHolder
 local function ButtonFrame(Container, Title, Description, HolderSize)
 	local TitleL = InsertTheme(Create("TextLabel", {
@@ -587,6 +599,7 @@ local function ButtonFrame(Container, Title, Description, HolderSize)
 		Name          = "Option"
 	}) Make("Corner", Frame, UDim.new(0, 6))
 
+	-- Subtle neon left border glow
 	local LeftGlow = InsertTheme(Create("Frame", Frame, {
 		Size             = UDim2.new(0, 2, 0.6, 0),
 		Position         = UDim2.new(0, 0, 0.2, 0),
@@ -649,6 +662,7 @@ local function GetColor(Inst)
 	end return ""
 end
 
+--  lopklib API
 function lopklib:GetIcon(index)
 	if type(index) ~= "string" or index:find("rbxassetid://") or #index == 0 then return index end
 	local firstMatch = nil
@@ -685,10 +699,11 @@ function lopklib:SetScale(NewScale)
 	ScreenGui.Scale.Scale = NewScale
 end
 
+-- White/Purple Shimmer
 task.spawn(function()
 	task.wait(3)
 	local angle = 0
-	local shimmerColor = Color3.fromRGB(255, 255, 255)
+	local shimmerColor = Color3.fromRGB(255, 245, 180) -- أبيض أصفر
 	while true do
 		task.wait(0.04)
 		angle = (angle + 3) % 360
@@ -744,7 +759,7 @@ function lopklib:Notify(Configs)
 	local Colors = {
 		Info    = Color3.fromRGB(0,   200, 255),
 		Success = Color3.fromRGB(0,   255, 160),
-		Warning = Color3.fromRGB(220, 220, 220),
+		Warning = Color3.fromRGB(255, 210, 0),
 		Error   = Color3.fromRGB(255, 60,  80)
 	}
 	local TypeColor = Colors[Type] or Colors.Info
@@ -758,6 +773,7 @@ function lopklib:Notify(Configs)
 	})
 	Make("Corner", NFrame, UDim.new(0, 12))
 
+	-- Top cyan accent line
 	local AccentLine = Create("Frame", NFrame, {
 		Size             = UDim2.new(1, 0, 0, 2),
 		BackgroundColor3 = TypeColor,
@@ -849,6 +865,7 @@ function lopklib:Notify(Configs)
 	return Notification
 end
 
+--  Particle System (Cyan)
 local function BuildParticleSystem(ParticleContainer, MainFrameRef)
 	local Config = {
 		MaxParticles  = 25,
@@ -870,7 +887,7 @@ local function BuildParticleSystem(ParticleContainer, MainFrameRef)
 		local sy   = cs.Y + 15
 		local size = math.random(Config.ParticleSize.Min, Config.ParticleSize.Max)
 		local spd  = math.random(Config.ParticleSpeed.Min, Config.ParticleSpeed.Max)
-		local col  = Theme and Theme["Color Theme"] or Color3.fromRGB(255, 255, 255)
+		local col  = Theme and Theme["Color Theme"] or Color3.fromRGB(255, 215, 0)
 
 		local P = Instance.new("Frame")
 		P.Size                   = UDim2.fromOffset(size, size)
@@ -934,8 +951,9 @@ local function BuildParticleSystem(ParticleContainer, MainFrameRef)
 	end
 end
 
+--  MakeWindow
 function lopklib:MakeWindow(Configs)
-	lopklib.Tabs = {}
+	lopklib.Tabs = {} -- reset tabs لكل window جديد
 
 	local WTitle    = Configs[1] or Configs.Name  or Configs.Title    or "LOPK Library V2"
 	local WMiniText = Configs[2] or Configs.SubTitle or "Cyan Edition"
@@ -955,6 +973,7 @@ function lopklib:MakeWindow(Configs)
 		end
 	end; LoadFile()
 
+	-- ══ دالة الإشعار الأزرق ══
 	local function BlueNotify(title, text, duration)
 		local NGui = Instance.new("ScreenGui")
 		NGui.Name = "LOPKStartNotif"
@@ -976,8 +995,8 @@ function lopklib:MakeWindow(Configs)
 		Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		local Grad = Instance.new("UIGradient", Stroke)
 		Grad.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200)),
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 0)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 228, 100)),
 		})
 		Grad.Rotation = 90
 
@@ -986,8 +1005,8 @@ function lopklib:MakeWindow(Configs)
 		TopLine.BorderSizePixel = 0
 		local TLG = Instance.new("UIGradient", TopLine)
 		TLG.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200)),
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 0)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 228, 100)),
 		})
 
 		local TitleL = Instance.new("TextLabel", Frame)
@@ -995,7 +1014,7 @@ function lopklib:MakeWindow(Configs)
 		TitleL.Position = UDim2.fromOffset(12, 8)
 		TitleL.BackgroundTransparency = 1
 		TitleL.Text = title
-		TitleL.TextColor3 = Color3.fromRGB(255, 255, 255)
+		TitleL.TextColor3 = Color3.fromRGB(255, 228, 100)
 		TitleL.TextSize = 12
 		TitleL.Font = Enum.Font.GothamBold
 		TitleL.TextXAlignment = Enum.TextXAlignment.Left
@@ -1005,7 +1024,7 @@ function lopklib:MakeWindow(Configs)
 		DescL.Position = UDim2.fromOffset(12, 30)
 		DescL.BackgroundTransparency = 1
 		DescL.Text = text
-		DescL.TextColor3 = Color3.fromRGB(180, 180, 180)
+		DescL.TextColor3 = Color3.fromRGB(255, 231, 100)
 		DescL.TextSize = 10
 		DescL.Font = Enum.Font.Gotham
 		DescL.TextXAlignment = Enum.TextXAlignment.Left
@@ -1024,31 +1043,34 @@ function lopklib:MakeWindow(Configs)
 		NGui:Destroy()
 	end
 
+	-- اشعار 1: يظهر قبل السكربت وينتظر 6 ثواني
 	BlueNotify("⏳ جاري التحميل...", "انتظر 6 ثواني وسيشتغل السكربت", 6)
 
 	local UISizeX, UISizeY = unpack(lopklib.Save.UISize)
 	local MainFrame = InsertTheme(Create("ImageButton", ScreenGui, {
 		Size                   = UDim2.fromOffset(UISizeX, UISizeY),
 		Position               = UDim2.new(0.5, -UISizeX/2, 0.5, -UISizeY/2),
-		BackgroundTransparency = 0.02,
+		BackgroundTransparency = 0.08,
 		Name                   = "Hub"
 	}), "Main")
 	Make("Gradient", MainFrame, { Rotation = 135 })
 	MakeDrag(MainFrame)
 	local MainCorner = Make("Corner", MainFrame)
 
+	-- ══ Avatar Background Image ══
 	local AvatarBG = Create("ImageLabel", MainFrame, {
 		Size               = UDim2.new(1, 0, 1, 0),
 		Position           = UDim2.new(0, 0, 0, 0),
 		BackgroundTransparency = 1,
-		Image              = "rbxassetid://117630021115876",
-		ImageTransparency  = 0.15,
+		Image              = "rbxassetid://140003830157722",
+		ImageTransparency  = 0.45,
 		ScaleType          = Enum.ScaleType.Crop,
 		ZIndex             = 0,
 		Name               = "AvatarBG"
 	})
 	Make("Corner", AvatarBG)
 
+	-- ══ Animated Purple/Black Gradient Overlay ══
 	local BlueOverlay = Create("Frame", MainFrame, {
 		Size               = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 0,
@@ -1070,6 +1092,7 @@ function lopklib:MakeWindow(Configs)
 		})
 	})
 
+	-- Animate gradient rotation
 	task.spawn(function()
 		local angle = 120
 		while MainFrame and MainFrame.Parent do
@@ -1079,6 +1102,8 @@ function lopklib:MakeWindow(Configs)
 		end
 	end)
 
+
+	-- Outer neon glow stroke
 	local OuterStroke = Create("UIStroke", MainFrame, {
 		Color           = Theme["Color Stroke"],
 		Thickness       = 1.5,
@@ -1094,6 +1119,7 @@ function lopklib:MakeWindow(Configs)
 		Name               = "Top Bar"
 	})
 
+	-- Top bar accent line
 	local TopAccent = Create("Frame", TopBar, {
 		Size             = UDim2.new(1, 0, 0, 1),
 		Position         = UDim2.new(0, 0, 1, -1),
@@ -1153,6 +1179,7 @@ function lopklib:MakeWindow(Configs)
 		Create("UIListLayout", { Padding = UDim.new(0, 5) })
 	}), "ScrollBar")
 
+	-- Tab separator line
 	local TabSep = Create("Frame", Components, {
 		Size             = UDim2.new(0, 1, 1, -30),
 		Position         = UDim2.new(0, lopklib.Save.TabSize, 0, 30),
@@ -1171,6 +1198,7 @@ function lopklib:MakeWindow(Configs)
 		Name               = "Containers"
 	})
 
+	-- Particles
 	local ParticleContainer = Create("Frame", Containers, {
 		Size               = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
@@ -1180,6 +1208,7 @@ function lopklib:MakeWindow(Configs)
 	})
 	local ActiveParticles, SetParticlesVisible = BuildParticleSystem(ParticleContainer, MainFrame)
 
+	-- Resize handles
 	local ControlSize1 = MakeDrag(Create("ImageButton", MainFrame, {
 		Size               = UDim2.new(0, 35, 0, 35),
 		Position           = MainFrame.Size,
@@ -1221,6 +1250,7 @@ function lopklib:MakeWindow(Configs)
 		SaveJson("lopk library V2.json", lopklib.Save)
 	end)
 
+	-- Close / Minimize buttons
 	local ButtonsFolder = Create("Folder", TopBar, { Name = "Buttons" })
 
 	local CloseButton = Create("ImageButton", {
@@ -1271,7 +1301,7 @@ function lopklib:MakeWindow(Configs)
 			SetParticlesVisible(true)
 			Minimized = false
 		else
-			MinimizeButton.ImageColor3 = Color3.fromRGB(200, 200, 200)
+			MinimizeButton.ImageColor3 = Color3.fromRGB(255, 210, 0)
 			SaveSize = MainFrame.Size
 			ControlSize1.Visible = false
 			ControlSize2.Visible = false
@@ -1286,6 +1316,21 @@ function lopklib:MakeWindow(Configs)
 		MainFrame.Visible = not MainFrame.Visible
 	end
 
+	function Window:AddMinimizeButton(Configs)
+		local BtnSize = (Configs.Button and Configs.Button.Size) or UDim2.fromOffset(60, 60)
+
+		local Btn = MakeDrag(Create("ImageButton", ScreenGui, {
+			Size               = BtnSize,
+			Position           = UDim2.fromScale(0.15, 0.15),
+			BackgroundTransparency = 1,
+			AutoButtonColor    = false,
+			ZIndex             = 10
+		}))
+
+		local Corner, Stroke
+		if Configs.Corner then Corner = Make("Corner", Btn); SetProps(Corner, Configs.Corner) end
+
+		-- Cyan stroke مطابق لنمط المكتبة
 		Stroke = InsertTheme(Create("UIStroke", Btn, {
 			Color           = Theme["Color Stroke"],
 			Thickness       = 1.5,
@@ -1295,6 +1340,7 @@ function lopklib:MakeWindow(Configs)
 
 		SetProps(Btn, Configs.Button)
 
+		-- انيميشن تكبير / تصغير عند الضغط
 		local OrigSize = Btn.Size
 		Btn.MouseButton1Down:Connect(function()
 			PlayClickSound()
@@ -1430,6 +1476,7 @@ function lopklib:MakeWindow(Configs)
 		end
 	end
 
+	--  MakeTab
 	local ContainerList = {}
 	function Window:MakeTab(paste, Configs)
 		if type(paste) == "table" then Configs = paste end
@@ -1551,6 +1598,7 @@ function lopklib:MakeWindow(Configs)
 				Name               = "Option"
 			})
 
+			-- Neon line under section title
 			local Line = Create("Frame", SectionFrame, {
 				Size             = UDim2.new(1, -30, 0, 1),
 				Position         = UDim2.new(0, 30, 1, -1),
@@ -1571,6 +1619,7 @@ function lopklib:MakeWindow(Configs)
 				TextXAlignment    = "Left"
 			}), "Text")
 
+			-- Small accent dot
 			local Dot = InsertTheme(Create("Frame", SectionFrame, {
 				Size             = UDim2.new(0, 5, 0, 5),
 				Position         = UDim2.new(0, 22, 0.5),
@@ -1611,6 +1660,7 @@ function lopklib:MakeWindow(Configs)
 			local Callback     = Funcs:GetCallback(Configs, 2)
 			local FButton, LabelFunc = ButtonFrame(Container, BName, BDescription, UDim2.new(1, -20))
 
+			-- Chevron icon
 			local BIcon = InsertTheme(Create("ImageLabel", FButton, {
 				Size               = UDim2.new(0, 13, 0, 13),
 				Position           = UDim2.new(1, -10, 0.5),
@@ -1680,7 +1730,7 @@ function lopklib:MakeWindow(Configs)
 					CreateTween({Toggle,       "Position",         UDim2.new(1, 0, 0.5), 0.22})
 					CreateTween({Toggle,       "BackgroundTransparency", 0, 0.22})
 					CreateTween({Toggle,       "AnchorPoint",      Vector2.new(1, 0.5), 0.22})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(40, 40, 40), 0.22})
+					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(0, 40, 60), 0.22})
 				else
 					CreateTween({Toggle,       "Position",         UDim2.new(0, 0, 0.5), 0.22})
 					CreateTween({Toggle,       "BackgroundTransparency", 0.7, 0.22})
@@ -1755,7 +1805,7 @@ function lopklib:MakeWindow(Configs)
 			local DropFrame = Create("Frame", NoClickFrame, {
 				Size               = UDim2.new(SelectedFrame.Size.X, 0, 0),
 				BackgroundTransparency = 0.06,
-				BackgroundColor3   = Color3.fromRGB(8, 8, 8),
+				BackgroundColor3   = Color3.fromRGB(4, 12, 32),
 				AnchorPoint        = Vector2.new(0, 1),
 				Name               = "DropdownFrame",
 				ClipsDescendants   = true,
@@ -2023,6 +2073,7 @@ function lopklib:MakeWindow(Configs)
 				BorderSizePixel   = 0
 			}), "Theme") Make("Corner", Indicator)
 
+			-- Glow effect on indicator
 			local IndicatorGlow = InsertTheme(Create("Frame", SliderBar, {
 				BackgroundColor3  = Theme["Color Theme"],
 				Size              = UDim2.fromScale(0.3, 3),
@@ -2034,7 +2085,7 @@ function lopklib:MakeWindow(Configs)
 
 			local SliderIcon = Create("Frame", SliderBar, {
 				Size              = UDim2.new(0, 6, 0, 14),
-				BackgroundColor3  = Color3.fromRGB(255, 255, 255),
+				BackgroundColor3  = Color3.fromRGB(255, 230, 80),
 				Position          = UDim2.fromScale(0.3, 0.5),
 				AnchorPoint       = Vector2.new(0.5, 0.5),
 				BackgroundTransparency = 0.1
@@ -2386,6 +2437,7 @@ function lopklib:MakeWindow(Configs)
 	CloseButton.Activated:Connect(Window.CloseBtn)
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 
+	-- اشعار 2: يظهر بعد ما يشتغل السكربت مباشرة
 	task.delay(0.1, function()
 		BlueNotify("✅ تم التفعيل 😛!", "تم تفعيل السكربت بنجاح!", 4)
 	end)
