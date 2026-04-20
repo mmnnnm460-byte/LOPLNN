@@ -980,7 +980,10 @@ local SetProps, SetChildren, InsertTheme, Create do
 			if type(decode) == "table" then
 				if rawget(decode, "UISize") then redzlib.Save["UISize"] = decode["UISize"] end
 				if rawget(decode, "TabSize") then redzlib.Save["TabSize"] = decode["TabSize"] end
-				if rawget(decode, "Theme") and VerifyTheme(decode["Theme"]) then redzlib.Save["Theme"] = decode["Theme"] end
+				-- VerifyTheme defined later, check theme name exists in table directly
+				if rawget(decode, "Theme") and redzlib.Themes[decode["Theme"]] then
+					redzlib.Save["Theme"] = decode["Theme"]
+				end
 			end
 		end
 	end
@@ -1008,11 +1011,11 @@ local Funcs = {} do
 		Obj.Visible = Bool ~= nil and Bool or Obj.Visible
 	end
 	
-	function Funcs:ToggleParent(Obj, Parent)
+	function Funcs:ToggleParent(Obj, Bool, Parent)
 		if Bool ~= nil then
-			Obj.Parent = Bool
+			Obj.Parent = Bool and Parent or nil
 		else
-			Obj.Parent = not Obj.Parent and Parent
+			Obj.Parent = not Obj.Parent and Parent or nil
 		end
 	end
 	
@@ -1062,20 +1065,6 @@ local Connections, Connection = {}, redzlib.Connection do
 				end
 			end
 			
-				local NotificationContainer = Create("Frame", ScreenGui, {
-				Name = "NotificationContainer",
-				Size = UDim2.new(0, 280, 1, 0),
-				Position = UDim2.new(1, -300, 1, -20),
-				AnchorPoint = Vector2.new(0, 1),
-				BackgroundTransparency = 1,
-				ZIndex = 999
-			}, {
-				Create("UIListLayout", {
-					SortOrder = "LayoutOrder",
-					Padding = UDim.new(0, 8),
-					VerticalAlignment = "Bottom"
-				})
-			})
 			function Connect:Once(func)
 				if type(func) == "function" then
 					local Connected;
@@ -1178,9 +1167,9 @@ local function CreateTween(Configs)
 	local NewVal = Configs[3] or Configs.NewVal
 	local Time = Configs[4] or Configs.Time or 0.5
 	local TweenWait = Configs[5] or Configs.wait or false
-	local TweenInfo = TweenInfo.new(Time, Enum.EasingStyle.Quint)
+	local Info = TweenInfo.new(Time, Enum.EasingStyle.Quint)
 	
-	local Tween = TweenService:Create(Instance, TweenInfo, {[Prop] = NewVal})
+	local Tween = TweenService:Create(Instance, Info, {[Prop] = NewVal})
 	Tween:Play()
 	if TweenWait then
 		Tween.Completed:Wait()
@@ -1252,9 +1241,9 @@ local function Make(Ele, Instance, props, ...)
 end
 
 AddEle("Corner", function(parent, CornerRadius)
-	local New = SetProps(Create("UICorner", parent, {
+	local New = Create("UICorner", parent, {
 		CornerRadius = CornerRadius or UDim.new(0, 7)
-	}), props)
+	})
 	return New
 end)
 
@@ -1439,7 +1428,7 @@ function redzlib:SetTheme(NewTheme)
 	SaveJson("redz library V5.json", redzlib.Save)
 	Theme = redzlib.Themes[NewTheme]
 	
-	Comnection:FireConnection("ThemeChanged", NewTheme)
+	Comnection and Connection:FireConnection("ThemeChanged", NewTheme)
 
 	for _,Val in pairs(redzlib.Instances) do
 		if Val.Type == "Gradient" then
@@ -1627,9 +1616,7 @@ function redzlib:MakeWindow(Configs)
 		BackgroundTransparency = 0.15,
 		Name = "Hub"
 }), "Main")
-	Make("Gradient", MainFrame, {
-		Rotation = 45
-	})MakeDrag(MainFrame)
+	MakeDrag(MainFrame)
 	local MainCorner = Make("Corner", MainFrame)
 
 	-- ANIMATED WHITE BORDER (rotating shimmer every ~1 second)
@@ -1767,9 +1754,6 @@ function redzlib:MakeWindow(Configs)
 		ClipsDescendants = true,
 		Name = "Containers"
 	})
-
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 
 local ParticleContainer = Create("Frame", Containers, {
 	Size = UDim2.new(1, 0, 1, 0),
@@ -1955,7 +1939,7 @@ end)
 		Name = "Buttons"
 	})
 	
-	local CloseButton = Create("ImageButton", {
+	local CloseButton = Create("ImageButton", TopBar, {
 		Size = UDim2.new(0, 14, 0, 14),
 		Position = UDim2.new(1, -10, 0.5),
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -2027,22 +2011,11 @@ end)
 	
 	function Window:SetThemeParticles(enabled)
 		if enabled then
-			if not ParticleConnection then
-				ParticleConnection = RunService.Heartbeat:Connect(function()
-					UpdateParticles()
-					SpawnSystem()
-				end)
-			end
 			ParticleContainer.Visible = true
 		else
-			if ParticleConnection then
-				ParticleConnection:Disconnect()
-				ParticleConnection = nil
-			end
 			ParticleContainer.Visible = false
 		end
 	end
-
 
 	function Window:Minimize()
 		MainFrame.Visible = not MainFrame.Visible
