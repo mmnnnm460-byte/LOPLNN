@@ -8,6 +8,19 @@ local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local PlayerMouse = Player:GetMouse()
 
+-- ════════════════════════════════
+-- CLICK SOUND SYSTEM
+-- ════════════════════════════════
+local function PlayClickSound()
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://6042053626"
+	sound.Volume = 0.6
+	sound.RollOffMaxDistance = 100
+	sound.Parent = workspace
+	sound:Play()
+	game:GetService("Debris"):AddItem(sound, 2)
+end
+
 local redzlib = {
 	Themes = {
 		Darker = {
@@ -1175,23 +1188,6 @@ local function CreateTween(Configs)
 	return Tween
 end
 
--- ========== CLICK SOUND ========== --
-local _ClickSound do
-	_ClickSound = Instance.new("Sound")
-	_ClickSound.SoundId   = "rbxassetid://6042053626"  -- UI click (short & crisp)
-	_ClickSound.Volume    = 0.35
-	_ClickSound.RollOffMaxDistance = 0
-	_ClickSound.Parent    = game:GetService("SoundService")
-end
-
-local function PlayClickSound()
-	local s = _ClickSound:Clone()
-	s.Parent = game:GetService("SoundService")
-	s:Play()
-	game:GetService("Debris"):AddItem(s, 2)
-end
--- ================================= --
-
 local function MakeDrag(Instance)
 	task.spawn(function()
 		SetProps(Instance, {
@@ -1295,7 +1291,6 @@ AddEle("Button", function(parent, props, ...)
 	end)
 
 	New.MouseButton1Down:Connect(function()
-		PlayClickSound()
 		CreateTween({New, "Size", OriginalSize - UDim2.fromOffset(4, 2), 0.1})
 		CreateTween({New, "BackgroundTransparency", 0.6, 0.1})
 	end)
@@ -1308,6 +1303,7 @@ AddEle("Button", function(parent, props, ...)
 	if args[1] then
 		New.Activated:Connect(args[1])
 	end
+	New.Activated:Connect(PlayClickSound)
 
 	return New
 end)
@@ -2217,8 +2213,47 @@ end
 		end
 		
 		local TabSelect = Make("Button", MainScroll, {
-			Size = UDim2.new(1, 0, 0, 24)
+			Size = UDim2.new(1, 0, 0, 28)
 		})Make("Corner", TabSelect)
+
+		-- Purple image background on tab (matches the purple wave image)
+		local TabBgImage = Create("ImageLabel", TabSelect, {
+			Size = UDim2.new(1, 0, 1, 0),
+			Position = UDim2.new(0, 0, 0, 0),
+			Image = "rbxassetid://13516143279",
+			BackgroundTransparency = 1,
+			ImageTransparency = FirstTab and 0.85 or 0.55,
+			ScaleType = Enum.ScaleType.Crop,
+			ZIndex = 0,
+			ClipsDescendants = false
+		})
+		Make("Corner", TabBgImage)
+
+		-- White/silver gradient overlay on tab
+		local TabGradient = Create("UIGradient", TabSelect, {
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 255, 255)),
+				ColorSequenceKeypoint.new(0.40, Color3.fromRGB(200, 200, 200)),
+				ColorSequenceKeypoint.new(0.70, Color3.fromRGB(255, 255, 255)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(180, 180, 180))
+			}),
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0.00, FirstTab and 0.97 or 0.75),
+				NumberSequenceKeypoint.new(0.50, FirstTab and 0.93 or 0.60),
+				NumberSequenceKeypoint.new(1.00, FirstTab and 0.97 or 0.75)
+			}),
+			Rotation = 0
+		})
+
+		-- Animate tab gradient rotation for shimmer effect
+		task.spawn(function()
+			local tr = math.random(0, 180)
+			while TabSelect and TabSelect.Parent do
+				task.wait(0.03)
+				tr = (tr + 1.0) % 360
+				TabGradient.Rotation = tr
+			end
+		end)
 		
 		local LabelTitle = InsertTheme(Create("TextLabel", TabSelect, {
 			Size = UDim2.new(1, TIcon and -25 or -15, 1),
@@ -2297,8 +2332,11 @@ end
 			CreateTween({LabelIcon, "ImageTransparency", 0, 0.35})
 			CreateTween({Selected, "Size", UDim2.new(0, 4, 0, 13), 0.35})
 			CreateTween({Selected, "BackgroundTransparency", 0, 0.35})
+			-- Show purple image bg on active tab
+			CreateTween({TabBgImage, "ImageTransparency", 0.3, 0.35})
 		end
 		TabSelect.Activated:Connect(Tabs)
+		TabSelect.Activated:Connect(PlayClickSound)
 		
 		FirstTab = true
 		local Tab = {}
@@ -2311,6 +2349,8 @@ end
 			CreateTween({LabelIcon, "ImageTransparency", 0.3, 0.35})
 			CreateTween({Selected, "Size", UDim2.new(0, 4, 0, 4), 0.35})
 			CreateTween({Selected, "BackgroundTransparency", 1, 0.35})
+			-- Fade out purple image on inactive tab
+			CreateTween({TabBgImage, "ImageTransparency", 0.85, 0.35})
 		end
 		function Tab:Enable()
 			Tabs()
@@ -2428,65 +2468,43 @@ end
 			
 			local Button, LabelFunc = ButtonFrame(Container, TName, TDesc, UDim2.new(1, -38))
 			
-			-- Toggle: FULL CIRCLE design - outer ring + inner dot
-			local ToggleHolder = Create("Frame", Button, {
-				Size = UDim2.new(0, 22, 0, 22),
+			-- Toggle: classic capsule style (restored)
+			local ToggleHolder = InsertTheme(Create("Frame", Button, {
+				Size = UDim2.new(0, 35, 0, 18),
 				Position = UDim2.new(1, -10, 0.5),
 				AnchorPoint = Vector2.new(1, 0.5),
-				BackgroundColor3 = Color3.fromRGB(8, 8, 8),
-				BorderSizePixel = 0
-			})
-			Make("Corner", ToggleHolder, UDim.new(0.5, 0)) -- full circle
-			-- Animated outer ring (white shimmer stroke)
-			local ToggleRing = Create("UIStroke", ToggleHolder, {
-				Color = Color3.fromRGB(120, 120, 120),
-				Thickness = 1.5,
-				ApplyStrokeMode = "Border"
-			})
+				BackgroundColor3 = Theme["Color Stroke"]
+			}), "Stroke")Make("Corner", ToggleHolder, UDim.new(0.5, 0))
 
-			-- Inner fill circle (shows when ON)
-			local Toggle = Create("Frame", ToggleHolder, {
-				Size = UDim2.new(0, 12, 0, 12),
+			local Slider = Create("Frame", ToggleHolder, {
+				BackgroundTransparency = 1,
+				Size = UDim2.new(0.8, 0, 0.8, 0),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundColor3 = Color3.fromRGB(80, 80, 80),
-				BackgroundTransparency = 0.4,
-				BorderSizePixel = 0
+				AnchorPoint = Vector2.new(0.5, 0.5)
 			})
-			Make("Corner", Toggle, UDim.new(0.5, 0))
 
-			-- Animate the ring shimmer for this toggle
-			task.spawn(function()
-				local rt = math.random(0, 60) * 0.05 -- random phase offset
-				while ToggleHolder and ToggleHolder.Parent do
-					task.wait(0.025)
-					rt = rt + 0.05
-					local wave = math.abs(math.sin(rt))
-					local b = 80 + math.floor(wave * 175)
-					ToggleRing.Color = Color3.fromRGB(b, b, b)
-					ToggleRing.Transparency = 0.1 + wave * 0.5
-				end
-			end)
-			
+			local Toggle = InsertTheme(Create("Frame", Slider, {
+				Size = UDim2.new(0, 12, 0, 12),
+				Position = UDim2.new(0, 0, 0.5),
+				AnchorPoint = Vector2.new(0, 0.5),
+				BackgroundColor3 = Theme["Color Theme"]
+			}), "Theme")Make("Corner", Toggle, UDim.new(0.5, 0))
+
 			local WaitClick
 			local function SetToggle(Val)
 				if WaitClick then return end
-				
+
 				WaitClick, Default = true, Val
 				SetFlag(Flag, Default)
 				Funcs:FireCallback(Callback, Default)
 				if Default then
-					-- ON: bright white inner circle + brighter ring
-					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(255, 255, 255), 0.2})
-					CreateTween({Toggle, "BackgroundTransparency", 0, 0.2})
-					CreateTween({Toggle, "Size", UDim2.new(0, 14, 0, 14), 0.2})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(30, 30, 30), 0.2, Wait or false})
+					CreateTween({Toggle, "Position", UDim2.new(1, 0, 0.5), 0.25})
+					CreateTween({Toggle, "BackgroundTransparency", 0, 0.25})
+					CreateTween({Toggle, "AnchorPoint", Vector2.new(1, 0.5), 0.25, Wait or false})
 				else
-					-- OFF: dim grey inner circle
-					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(70, 70, 70), 0.2})
-					CreateTween({Toggle, "BackgroundTransparency", 0.4, 0.2})
-					CreateTween({Toggle, "Size", UDim2.new(0, 10, 0, 10), 0.2})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(8, 8, 8), 0.2, Wait or false})
+					CreateTween({Toggle, "Position", UDim2.new(0, 0, 0.5), 0.25})
+					CreateTween({Toggle, "BackgroundTransparency", 0.8, 0.25})
+					CreateTween({Toggle, "AnchorPoint", Vector2.new(0, 0.5), 0.25, Wait or false})
 				end
 				WaitClick = false
 			end;task.spawn(SetToggle, Default)
@@ -2766,7 +2784,6 @@ end
 					}), "Text")
 					
 					Button.Activated:Connect(function()
-						PlayClickSound()
 						Select(Options[Name])
 					end)
 					
@@ -3247,7 +3264,6 @@ function Tab:AddDiscordInvite(Configs)
 	Make("Corner", JoinButton, UDim.new(0.5, 0))
 	
 	local clickCooldown = 0
-	JoinButton.MouseButton1Down:Connect(PlayClickSound)
 	JoinButton.Activated:Connect(function()
 		if tick() - clickCooldown < 5 then return end
 		clickCooldown = tick()
@@ -3386,8 +3402,6 @@ end
 	
 	CloseButton.Activated:Connect(Window.CloseBtn)
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
-	CloseButton.MouseButton1Down:Connect(PlayClickSound)
-	MinimizeButton.MouseButton1Down:Connect(PlayClickSound)
 
 	return Window
 end
