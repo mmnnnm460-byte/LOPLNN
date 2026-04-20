@@ -1617,6 +1617,68 @@ function redzlib:MakeWindow(Configs)
 		Rotation = 45
 	})MakeDrag(MainFrame)
 	local MainCorner = Make("Corner", MainFrame)
+
+	-- ANIMATED WHITE BORDER (rotating shimmer every ~1 second)
+	local AnimatedStroke = Create("UIStroke", MainFrame, {
+		Color = Color3.fromRGB(255, 255, 255),
+		Thickness = 2,
+		ApplyStrokeMode = "Border",
+		Transparency = 0.3
+	})
+
+	-- Rotating background gradient (white shimmer sweeping across)
+	local BgGradient = Create("UIGradient", MainFrame, {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+			ColorSequenceKeypoint.new(0.35, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(0.65, Color3.fromRGB(10, 10, 10)),
+			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
+		}),
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0.00, 0.82),
+			NumberSequenceKeypoint.new(0.35, 0.68),
+			NumberSequenceKeypoint.new(0.65, 0.87),
+			NumberSequenceKeypoint.new(1.00, 0.82)
+		}),
+		Rotation = 0
+	})
+
+	-- Animate border pulse + gradient rotation every frame
+	local _animRot = 0
+	local _animT = 0
+	task.spawn(function()
+		while MainFrame and MainFrame.Parent do
+			task.wait(0.02)
+			_animRot = (_animRot + 1.5) % 360
+			_animT = _animT + 0.05
+			-- Rotate gradient (full revolution ~4.8 seconds)
+			BgGradient.Rotation = _animRot
+			-- Pulse border brightness
+			local pulse = math.abs(math.sin(_animT))
+			local b = 160 + math.floor(pulse * 95)
+			AnimatedStroke.Color = Color3.fromRGB(b, b, b)
+			AnimatedStroke.Transparency = 0.08 + pulse * 0.65
+		end
+	end)
+
+	-- Animate all Stroke instances with white shimmer effect
+	task.spawn(function()
+		task.wait(0.8)
+		local st = 0
+		while MainFrame and MainFrame.Parent do
+			task.wait(0.025)
+			st = st + 0.045
+			local wave = math.abs(math.sin(st))
+			for _, Val in pairs(redzlib.Instances) do
+				if Val.Type == "Stroke" and Val.Instance and Val.Instance.Parent then
+					local b = 55 + math.floor(wave * 145)
+					Val.Instance.Color = Color3.fromRGB(b, b, b)
+					Val.Instance.Transparency = 0.15 + wave * 0.55
+				end
+			end
+		end
+	end)
+
 	local Components = Create("Folder", MainFrame, {
 		Name = "Components"
 	})
@@ -2348,43 +2410,45 @@ end
 			
 			local Button, LabelFunc = ButtonFrame(Container, TName, TDesc, UDim2.new(1, -38))
 			
-			-- Toggle: black capsule background with white/silver circle (matches image design)
+			-- Toggle: FULL CIRCLE design - outer ring + inner dot
 			local ToggleHolder = Create("Frame", Button, {
-				Size = UDim2.new(0, 38, 0, 20),
+				Size = UDim2.new(0, 22, 0, 22),
 				Position = UDim2.new(1, -10, 0.5),
 				AnchorPoint = Vector2.new(1, 0.5),
-				BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+				BackgroundColor3 = Color3.fromRGB(8, 8, 8),
 				BorderSizePixel = 0
 			})
-			Make("Corner", ToggleHolder, UDim.new(0.5, 0))
-			-- Silver border stroke on the capsule
-			Create("UIStroke", ToggleHolder, {
-				Color = Color3.fromRGB(80, 80, 80),
-				Thickness = 1,
+			Make("Corner", ToggleHolder, UDim.new(0.5, 0)) -- full circle
+			-- Animated outer ring (white shimmer stroke)
+			local ToggleRing = Create("UIStroke", ToggleHolder, {
+				Color = Color3.fromRGB(120, 120, 120),
+				Thickness = 1.5,
 				ApplyStrokeMode = "Border"
 			})
-			
-			local Slider = Create("Frame", ToggleHolder, {
-				BackgroundTransparency = 1,
-				Size = UDim2.new(1, 0, 1, 0),
-				Position = UDim2.new(0, 0, 0, 0),
-				AnchorPoint = Vector2.new(0, 0)
-			})
-			
-			local Toggle = Create("Frame", Slider, {
-				Size = UDim2.new(0, 14, 0, 14),
-				Position = UDim2.new(0, 3, 0.5),
-				AnchorPoint = Vector2.new(0, 0.5),
-				BackgroundColor3 = Color3.fromRGB(160, 160, 160),
+
+			-- Inner fill circle (shows when ON)
+			local Toggle = Create("Frame", ToggleHolder, {
+				Size = UDim2.new(0, 12, 0, 12),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = Color3.fromRGB(80, 80, 80),
+				BackgroundTransparency = 0.4,
 				BorderSizePixel = 0
 			})
 			Make("Corner", Toggle, UDim.new(0.5, 0))
-			-- Inner glow on the circle
-			Create("UIStroke", Toggle, {
-				Color = Color3.fromRGB(220, 220, 220),
-				Thickness = 0.5,
-				ApplyStrokeMode = "Border"
-			})
+
+			-- Animate the ring shimmer for this toggle
+			task.spawn(function()
+				local rt = math.random(0, 60) * 0.05 -- random phase offset
+				while ToggleHolder and ToggleHolder.Parent do
+					task.wait(0.025)
+					rt = rt + 0.05
+					local wave = math.abs(math.sin(rt))
+					local b = 80 + math.floor(wave * 175)
+					ToggleRing.Color = Color3.fromRGB(b, b, b)
+					ToggleRing.Transparency = 0.1 + wave * 0.5
+				end
+			end)
 			
 			local WaitClick
 			local function SetToggle(Val)
@@ -2394,17 +2458,17 @@ end
 				SetFlag(Flag, Default)
 				Funcs:FireCallback(Callback, Default)
 				if Default then
-					-- ON: white circle moves right, capsule gets slight silver tint
-					CreateTween({Toggle, "Position", UDim2.new(1, -17, 0.5), 0.25})
-					CreateTween({Toggle, "AnchorPoint", Vector2.new(0, 0.5), 0.25})
-					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(255, 255, 255), 0.25})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(30, 30, 30), 0.25, Wait or false})
+					-- ON: bright white inner circle + brighter ring
+					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(255, 255, 255), 0.2})
+					CreateTween({Toggle, "BackgroundTransparency", 0, 0.2})
+					CreateTween({Toggle, "Size", UDim2.new(0, 14, 0, 14), 0.2})
+					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(30, 30, 30), 0.2, Wait or false})
 				else
-					-- OFF: grey circle moves left, capsule back to black
-					CreateTween({Toggle, "Position", UDim2.new(0, 3, 0.5), 0.25})
-					CreateTween({Toggle, "AnchorPoint", Vector2.new(0, 0.5), 0.25})
-					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(100, 100, 100), 0.25})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(10, 10, 10), 0.25, Wait or false})
+					-- OFF: dim grey inner circle
+					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(70, 70, 70), 0.2})
+					CreateTween({Toggle, "BackgroundTransparency", 0.4, 0.2})
+					CreateTween({Toggle, "Size", UDim2.new(0, 10, 0, 10), 0.2})
+					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(8, 8, 8), 0.2, Wait or false})
 				end
 				WaitClick = false
 			end;task.spawn(SetToggle, Default)
