@@ -2190,35 +2190,36 @@ end
 		})Make("Corner", TabSelect)
 
 		-- Purple image background on tab (matches the purple wave image)
+		-- Tab background image: behind text, correct ZIndex
 		local TabBgImage = Create("ImageLabel", TabSelect, {
 			Size = UDim2.new(1, 0, 1, 0),
 			Position = UDim2.new(0, 0, 0, 0),
 			Image = "rbxassetid://13516143279",
 			BackgroundTransparency = 1,
-			ImageTransparency = FirstTab and 0.85 or 0.55,
+			-- First tab is active (FirstTab==false means this is the FIRST tab being added)
+			ImageTransparency = FirstTab and 0.75 or 0.3,
 			ScaleType = Enum.ScaleType.Crop,
-			ZIndex = 0,
-			ClipsDescendants = false
+			ZIndex = 1
 		})
 		Make("Corner", TabBgImage)
 
-		-- White/silver gradient overlay on tab
-		local TabGradient = Create("UIGradient", TabSelect, {
+		-- White shimmer gradient: placed ON the image, not on the button itself
+		local TabGradient = Create("UIGradient", TabBgImage, {
 			Color = ColorSequence.new({
 				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 255, 255)),
-				ColorSequenceKeypoint.new(0.40, Color3.fromRGB(200, 200, 200)),
-				ColorSequenceKeypoint.new(0.70, Color3.fromRGB(255, 255, 255)),
+				ColorSequenceKeypoint.new(0.35, Color3.fromRGB(210, 210, 210)),
+				ColorSequenceKeypoint.new(0.65, Color3.fromRGB(255, 255, 255)),
 				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(180, 180, 180))
 			}),
 			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0.00, FirstTab and 0.97 or 0.75),
-				NumberSequenceKeypoint.new(0.50, FirstTab and 0.93 or 0.60),
-				NumberSequenceKeypoint.new(1.00, FirstTab and 0.97 or 0.75)
+				NumberSequenceKeypoint.new(0.00, 0.5),
+				NumberSequenceKeypoint.new(0.50, 0.3),
+				NumberSequenceKeypoint.new(1.00, 0.5)
 			}),
 			Rotation = 0
 		})
 
-		-- Animate tab gradient rotation for shimmer effect
+		-- Animate shimmer rotation
 		task.spawn(function()
 			local tr = math.random(0, 180)
 			while TabSelect and TabSelect.Parent do
@@ -2305,7 +2306,7 @@ end
 			CreateTween({LabelIcon, "ImageTransparency", 0, 0.35})
 			CreateTween({Selected, "Size", UDim2.new(0, 4, 0, 13), 0.35})
 			CreateTween({Selected, "BackgroundTransparency", 0, 0.35})
-			-- Show purple image bg on active tab
+			-- Show image on active tab (more visible)
 			CreateTween({TabBgImage, "ImageTransparency", 0.3, 0.35})
 		end
 		TabSelect.Activated:Connect(Tabs)
@@ -2322,8 +2323,8 @@ end
 			CreateTween({LabelIcon, "ImageTransparency", 0.3, 0.35})
 			CreateTween({Selected, "Size", UDim2.new(0, 4, 0, 4), 0.35})
 			CreateTween({Selected, "BackgroundTransparency", 1, 0.35})
-			-- Fade out purple image on inactive tab
-			CreateTween({TabBgImage, "ImageTransparency", 0.85, 0.35})
+			-- Fade image on inactive tab
+			CreateTween({TabBgImage, "ImageTransparency", 0.75, 0.35})
 		end
 		function Tab:Enable()
 			Tabs()
