@@ -2410,45 +2410,32 @@ end
 			
 			local Button, LabelFunc = ButtonFrame(Container, TName, TDesc, UDim2.new(1, -38))
 			
-			-- Toggle: FULL CIRCLE design - outer ring + inner dot
+			-- Toggle: CIRCLE design - outer ring + inner dot
 			local ToggleHolder = Create("Frame", Button, {
 				Size = UDim2.new(0, 22, 0, 22),
 				Position = UDim2.new(1, -10, 0.5),
 				AnchorPoint = Vector2.new(1, 0.5),
-				BackgroundColor3 = Color3.fromRGB(8, 8, 8),
+				BackgroundColor3 = Color3.fromRGB(20, 20, 20),
 				BorderSizePixel = 0
 			})
-			Make("Corner", ToggleHolder, UDim.new(0.5, 0)) -- full circle
-			-- Animated outer ring (white shimmer stroke)
+			Make("Corner", ToggleHolder, UDim.new(0.5, 0))
+			-- Static outer ring
 			local ToggleRing = Create("UIStroke", ToggleHolder, {
-				Color = Color3.fromRGB(120, 120, 120),
+				Color = Color3.fromRGB(100, 100, 100),
 				Thickness = 1.5,
 				ApplyStrokeMode = "Border"
 			})
 
-			-- Inner fill circle (shows when ON)
+			-- Inner dot circle
 			local Toggle = Create("Frame", ToggleHolder, {
 				Size = UDim2.new(0, 12, 0, 12),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(80, 80, 80),
-				BackgroundTransparency = 0.4,
+				BackgroundTransparency = 0.3,
 				BorderSizePixel = 0
 			})
 			Make("Corner", Toggle, UDim.new(0.5, 0))
-
-			-- Animate the ring shimmer for this toggle
-			task.spawn(function()
-				local rt = math.random(0, 60) * 0.05 -- random phase offset
-				while ToggleHolder and ToggleHolder.Parent do
-					task.wait(0.025)
-					rt = rt + 0.05
-					local wave = math.abs(math.sin(rt))
-					local b = 80 + math.floor(wave * 175)
-					ToggleRing.Color = Color3.fromRGB(b, b, b)
-					ToggleRing.Transparency = 0.1 + wave * 0.5
-				end
-			end)
 			
 			local WaitClick
 			local function SetToggle(Val)
@@ -2458,17 +2445,19 @@ end
 				SetFlag(Flag, Default)
 				Funcs:FireCallback(Callback, Default)
 				if Default then
-					-- ON: bright white inner circle + brighter ring
-					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(255, 255, 255), 0.2})
+					-- ON: bright white inner dot + lighter bg
+					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(220, 220, 220), 0.2})
 					CreateTween({Toggle, "BackgroundTransparency", 0, 0.2})
-					CreateTween({Toggle, "Size", UDim2.new(0, 14, 0, 14), 0.2})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(30, 30, 30), 0.2, Wait or false})
+					CreateTween({Toggle, "Size", UDim2.new(0, 13, 0, 13), 0.2})
+					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(25, 25, 25), 0.2, Wait or false})
+					ToggleRing.Color = Color3.fromRGB(150, 150, 150)
 				else
-					-- OFF: dim grey inner circle
-					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(70, 70, 70), 0.2})
-					CreateTween({Toggle, "BackgroundTransparency", 0.4, 0.2})
-					CreateTween({Toggle, "Size", UDim2.new(0, 10, 0, 10), 0.2})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(8, 8, 8), 0.2, Wait or false})
+					-- OFF: dim grey inner dot + dark bg
+					CreateTween({Toggle, "BackgroundColor3", Color3.fromRGB(80, 80, 80), 0.2})
+					CreateTween({Toggle, "BackgroundTransparency", 0.3, 0.2})
+					CreateTween({Toggle, "Size", UDim2.new(0, 12, 0, 12), 0.2})
+					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(20, 20, 20), 0.2, Wait or false})
+					ToggleRing.Color = Color3.fromRGB(100, 100, 100)
 				end
 				WaitClick = false
 			end;task.spawn(SetToggle, Default)
