@@ -2240,6 +2240,259 @@ end
 		end
 		function Tab:Destroy() TabSelect:Destroy() Container:Destroy() end
 		
+		function Tab:AddProfileCard()
+			local Players = game:GetService("Players")
+			local Player = Players.LocalPlayer
+
+			local Holder = Create("Frame", Container, {
+				Size = UDim2.new(1, 0, 0, 70),
+				Name = "Option",
+				BackgroundTransparency = 1
+			})
+
+			local Card = InsertTheme(Create("Frame", Holder, {
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Theme["Color Hub 2"],
+				BorderSizePixel = 0
+			}), "Frame")
+			Make("Corner", Card, UDim.new(0, 8))
+			Make("Stroke", Card)
+
+			local Avatar = InsertTheme(Create("ImageLabel", Card, {
+				Size = UDim2.new(0, 50, 0, 50),
+				Position = UDim2.new(0, 10, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. Player.UserId .. "&width=150&height=150&format=png",
+				BackgroundColor3 = Theme["Color Hub 2"],
+				ScaleType = Enum.ScaleType.Crop
+			}), "Frame")
+			Make("Corner", Avatar, UDim.new(1, 0))
+			Make("Stroke", Avatar)
+
+			InsertTheme(Create("TextLabel", Card, {
+				Size = UDim2.new(1, -75, 0, 18),
+				Position = UDim2.new(0, 68, 0, 10),
+				BackgroundTransparency = 1,
+				Font = Enum.Font.GothamBold,
+				TextSize = 11,
+				TextXAlignment = "Left",
+				TextColor3 = Theme["Color Text"],
+				Text = Player.DisplayName
+			}), "Text")
+
+			InsertTheme(Create("TextLabel", Card, {
+				Size = UDim2.new(1, -75, 0, 14),
+				Position = UDim2.new(0, 68, 0, 30),
+				BackgroundTransparency = 1,
+				Font = Enum.Font.Gotham,
+				TextSize = 9,
+				TextXAlignment = "Left",
+				TextColor3 = Theme["Color Dark Text"],
+				Text = "@" .. Player.Name
+			}), "DarkText")
+
+			InsertTheme(Create("TextLabel", Card, {
+				Size = UDim2.new(1, -75, 0, 14),
+				Position = UDim2.new(0, 68, 0, 46),
+				BackgroundTransparency = 1,
+				Font = Enum.Font.Gotham,
+				TextSize = 9,
+				TextXAlignment = "Left",
+				TextColor3 = Theme["Color Dark Text"],
+				Text = "ID: " .. Player.UserId
+			}), "DarkText")
+
+			local ProfileCard = {}
+			function ProfileCard:Destroy() Holder:Destroy() end
+			function ProfileCard:Visible(...) Funcs:ToggleVisible(Holder, ...) end
+			return ProfileCard
+		end
+
+		function Tab:AddSquareButton(Configs)
+			local TName = Configs[1] or Configs.Name or Configs.Title or "Button"
+			local ImageId = Configs.ImageId or Configs[2] or 0
+			local Callback = Funcs:GetCallback(Configs, 3)
+
+			local Holder = Create("Frame", Container, {
+				Size = UDim2.new(1, 0, 0, 60),
+				Name = "Option",
+				BackgroundTransparency = 1
+			})
+
+			local Btn = InsertTheme(Create("TextButton", Holder, {
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Theme["Color Hub 2"],
+				BorderSizePixel = 0,
+				Text = ""
+			}), "Frame")
+			Make("Corner", Btn, UDim.new(0, 6))
+			Make("Stroke", Btn)
+
+			local Img = Create("ImageLabel", Btn, {
+				Size = UDim2.new(0, 40, 0, 40),
+				Position = UDim2.new(0, 10, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				BackgroundTransparency = 1,
+				Image = ImageId ~= 0 and ("rbxassetid://" .. tostring(ImageId)) or ""
+			})
+
+			local Label = InsertTheme(Create("TextLabel", Btn, {
+				Size = UDim2.new(1, -65, 1, 0),
+				Position = UDim2.new(0, 58, 0, 0),
+				BackgroundTransparency = 1,
+				Font = Enum.Font.GothamBold,
+				TextSize = 10,
+				TextXAlignment = "Left",
+				TextWrapped = true,
+				TextColor3 = Theme["Color Text"],
+				Text = TName
+			}), "Text")
+
+			Btn.Activated:Connect(function()
+				Funcs:FireCallback(Callback)
+			end)
+
+			local SquareBtn = {}
+			function SquareBtn:Update(newConfigs)
+				if newConfigs.Name then Label.Text = newConfigs.Name end
+				if newConfigs.ImageId then
+					Img.Image = newConfigs.ImageId ~= 0 and ("rbxassetid://" .. tostring(newConfigs.ImageId)) or ""
+				end
+				if newConfigs.Callback then
+					Callback = newConfigs.Callback
+				end
+			end
+			function SquareBtn:Visible(...) Funcs:ToggleVisible(Holder, ...) end
+			function SquareBtn:Destroy() Holder:Destroy() end
+			return SquareBtn
+		end
+
+		function Tab:Addghalitextbox(Configs)
+			local TName = Configs[1] or Configs.Name or Configs.Title or "Search"
+			local TPlaceholder = Configs.Placeholder or Configs.PlaceholderText or "اكتب هنا..."
+			local Callback = Funcs:GetCallback(Configs, 2)
+
+			local Holder = Create("Frame", Container, {
+				Size = UDim2.new(1, 0, 0, 36),
+				Name = "Option",
+				BackgroundTransparency = 1
+			})
+
+			local BG = InsertTheme(Create("Frame", Holder, {
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Theme["Color Hub 2"],
+				BorderSizePixel = 0
+			}), "Frame")
+			Make("Corner", BG, UDim.new(0, 6))
+			Make("Stroke", BG)
+
+			local SearchIcon = Create("ImageLabel", BG, {
+				Size = UDim2.new(0, 16, 0, 16),
+				Position = UDim2.new(0, 8, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				Image = "rbxassetid://15637081879",
+				BackgroundTransparency = 1
+			})
+
+			local TBox = InsertTheme(Create("TextBox", BG, {
+				Size = UDim2.new(1, -35, 0.85, 0),
+				Position = UDim2.new(0, 30, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				BackgroundTransparency = 1,
+				Font = Enum.Font.Gotham,
+				TextSize = 10,
+				TextXAlignment = "Left",
+				TextColor3 = Theme["Color Text"],
+				PlaceholderText = TPlaceholder,
+				ClearTextOnFocus = false,
+				Text = ""
+			}), "Text")
+
+			TBox.FocusLost:Connect(function()
+				local txt = TBox.Text
+				if txt:gsub(" ", "") ~= "" then
+					Funcs:FireCallback(Callback, txt)
+				end
+			end)
+
+			TBox.Focused:Connect(function()
+				CreateTween({SearchIcon, "ImageColor3", Theme["Color Theme"], 0.2})
+			end)
+			TBox.FocusLost:Connect(function()
+				CreateTween({SearchIcon, "ImageColor3", Color3.new(1,1,1), 0.2})
+			end)
+
+			local GhaliBox = {}
+			function GhaliBox:Visible(...) Funcs:ToggleVisible(Holder, ...) end
+			function GhaliBox:Destroy() Holder:Destroy() end
+			return GhaliBox
+		end
+
+		function Tab:AddLabel(Configs)
+			local TName = Configs[1] or Configs.Name or Configs.Title or "Label"
+			local TText = Configs.Text or Configs[2] or ""
+
+			local Holder = Create("Frame", Container, {
+				Size = UDim2.new(1, 0, 0, 0),
+				Name = "Option",
+				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundTransparency = 1
+			})
+
+			local BG = InsertTheme(Create("Frame", Holder, {
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundColor3 = Theme["Color Hub 2"],
+				BorderSizePixel = 0
+			}), "Frame")
+			Make("Corner", BG, UDim.new(0, 6))
+			Make("Stroke", BG)
+
+			InsertTheme(Create("TextLabel", BG, {
+				Size = UDim2.new(1, -16, 0, 16),
+				Position = UDim2.new(0, 8, 0, 6),
+				BackgroundTransparency = 1,
+				Font = Enum.Font.GothamBold,
+				TextSize = 10,
+				TextXAlignment = "Left",
+				TextColor3 = Theme["Color Text"],
+				Text = TName
+			}), "Text")
+
+			local InfoLabel = InsertTheme(Create("TextLabel", BG, {
+				Size = UDim2.new(1, -16, 0, 0),
+				Position = UDim2.new(0, 8, 0, 24),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundTransparency = 1,
+				Font = Enum.Font.Gotham,
+				TextSize = 9,
+				TextXAlignment = "Left",
+				TextWrapped = true,
+				RichText = true,
+				TextColor3 = Theme["Color Dark Text"],
+				Text = TText
+			}), "DarkText")
+
+			-- spacer at bottom
+			Create("Frame", BG, {
+				Size = UDim2.new(1, 0, 0, 6),
+				Position = UDim2.new(0, 0, 1, 0),
+				AnchorPoint = Vector2.new(0, 1),
+				BackgroundTransparency = 1
+			})
+
+			local LabelObj = {}
+			function LabelObj:UpdateInfo(newText, _userId)
+				InfoLabel.Text = newText or ""
+			end
+			function LabelObj:Set(newText)
+				InfoLabel.Text = newText or ""
+			end
+			function LabelObj:Visible(...) Funcs:ToggleVisible(Holder, ...) end
+			function LabelObj:Destroy() Holder:Destroy() end
+			return LabelObj
+		end
+
 		function Tab:AddSection(Configs)
 			local SectionName = type(Configs) == "string" and Configs or Configs[1] or Configs.Name or Configs.Title or Configs.Section
 			
