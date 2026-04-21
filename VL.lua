@@ -887,7 +887,7 @@ local function BuildParticleSystem(ParticleContainer, MainFrameRef)
 		local sy   = cs.Y + 15
 		local size = math.random(Config.ParticleSize.Min, Config.ParticleSize.Max)
 		local spd  = math.random(Config.ParticleSpeed.Min, Config.ParticleSpeed.Max)
-		local col  = Theme and Theme["Color Theme"] or Color3.fromRGB(255, 215, 0)
+		local col  = Color3.fromRGB(255, 0, 0)
 
 		local P = Instance.new("Frame")
 		P.Size                   = UDim2.fromOffset(size, size)
@@ -1624,7 +1624,7 @@ function lopklib:MakeWindow(Configs)
 				Size             = UDim2.new(0, 5, 0, 5),
 				Position         = UDim2.new(0, 22, 0.5),
 				AnchorPoint      = Vector2.new(0, 0.5),
-				BackgroundColor3 = Theme["Color Theme"]
+				BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 			}), "Theme") Make("Corner", Dot, UDim.new(0.5, 0))
 
 			local Section = {}
@@ -1717,7 +1717,7 @@ function lopklib:MakeWindow(Configs)
 				Size             = UDim2.new(0, 12, 0, 12),
 				Position         = UDim2.new(0, 0, 0.5),
 				AnchorPoint      = Vector2.new(0, 0.5),
-				BackgroundColor3 = Theme["Color Theme"]
+				BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 			}), "Theme") Make("Corner", Toggle, UDim.new(0.5, 0))
 
 			local WaitClickT
@@ -2357,10 +2357,10 @@ function lopklib:MakeWindow(Configs)
 				end
 
 				if MembersOnline > 0 then
-					CreateStatusIndicator(Color3.fromRGB(0, 220, 180), MembersOnline .. " Online")
+					CreateStatusIndicator(Color3.fromRGB(255, 0, 0), MembersOnline .. " Online")
 				end
 				if TotalMembers > 0 then
-					CreateStatusIndicator(Color3.fromRGB(86, 101, 150), TotalMembers .. " Members")
+					CreateStatusIndicator(Color3.fromRGB(255, 0, 0), TotalMembers .. " Members")
 				end
 			end
 
