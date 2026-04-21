@@ -2239,7 +2239,7 @@ end
 			Funcs:ToggleParent(Container, Bool, Containers)
 		end
 		function Tab:Destroy() TabSelect:Destroy() Container:Destroy() end
-		
+
 		function Tab:AddProfileCard()
 			local Players = game:GetService("Players")
 			local Player = Players.LocalPlayer
@@ -2258,14 +2258,14 @@ end
 			Make("Corner", Card, UDim.new(0, 8))
 			Make("Stroke", Card)
 
-			local Avatar = InsertTheme(Create("ImageLabel", Card, {
+			local Avatar = Create("ImageLabel", Card, {
 				Size = UDim2.new(0, 50, 0, 50),
 				Position = UDim2.new(0, 10, 0.5, 0),
 				AnchorPoint = Vector2.new(0, 0.5),
 				Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. Player.UserId .. "&width=150&height=150&format=png",
-				BackgroundColor3 = Theme["Color Hub 2"],
+				BackgroundTransparency = 1,
 				ScaleType = Enum.ScaleType.Crop
-			}), "Frame")
+			})
 			Make("Corner", Avatar, UDim.new(1, 0))
 			Make("Stroke", Avatar)
 
@@ -2358,9 +2358,7 @@ end
 				if newConfigs.ImageId then
 					Img.Image = newConfigs.ImageId ~= 0 and ("rbxassetid://" .. tostring(newConfigs.ImageId)) or ""
 				end
-				if newConfigs.Callback then
-					Callback = newConfigs.Callback
-				end
+				if newConfigs.Callback then Callback = newConfigs.Callback end
 			end
 			function SquareBtn:Visible(...) Funcs:ToggleVisible(Holder, ...) end
 			function SquareBtn:Destroy() Holder:Destroy() end
@@ -2414,7 +2412,6 @@ end
 					Funcs:FireCallback(Callback, txt)
 				end
 			end)
-
 			TBox.Focused:Connect(function()
 				CreateTween({SearchIcon, "ImageColor3", Theme["Color Theme"], 0.2})
 			end)
@@ -2472,14 +2469,6 @@ end
 				TextColor3 = Theme["Color Dark Text"],
 				Text = TText
 			}), "DarkText")
-
-			-- spacer at bottom
-			Create("Frame", BG, {
-				Size = UDim2.new(1, 0, 0, 6),
-				Position = UDim2.new(0, 0, 1, 0),
-				AnchorPoint = Vector2.new(0, 1),
-				BackgroundTransparency = 1
-			})
 
 			local LabelObj = {}
 			function LabelObj:UpdateInfo(newText, _userId)
