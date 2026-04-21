@@ -2966,7 +2966,98 @@ end
 			function TextBox:Destroy() Button:Destroy() end
 			return TextBox
 		end
-function Tab:AddDiscordInvite(Configs)
+
+		function Tab:AddAnimatedButton(Configs)
+			local TName = Configs[1] or Configs.Name or Configs.Title or "Button"
+			local Words = Configs.Words or {"Click Me"}
+			local Callback = Funcs:GetCallback(Configs, 2)
+
+			local Button, LabelFunc = ButtonFrame(Container, TName, "", UDim2.new(1, -38))
+
+			local WordLabel = InsertTheme(Create("TextLabel", Button, {
+				Size = UDim2.new(0, 120, 0, 18),
+				Position = UDim2.new(1, -10, 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
+				BackgroundTransparency = 1,
+				Font = Enum.Font.GothamBold,
+				TextSize = 10,
+				TextColor3 = Theme["Color Theme"],
+				Text = Words[1] or ""
+			}), "Text")
+
+			task.spawn(function()
+				local wordIndex = 1
+				while Button and Button.Parent do
+					wordIndex = wordIndex % #Words + 1
+					CreateTween({WordLabel, "TextTransparency", 1, 0.25})
+					task.wait(0.3)
+					WordLabel.Text = Words[wordIndex]
+					CreateTween({WordLabel, "TextTransparency", 0, 0.25})
+					task.wait(1.5)
+				end
+			end)
+
+			Button.Activated:Connect(function()
+				Funcs:FireCallback(Callback)
+			end)
+
+			local AnimBtn = {}
+			function AnimBtn:Visible(...) Funcs:ToggleVisible(Button, ...) end
+			function AnimBtn:Destroy() Button:Destroy() end
+			return AnimBtn
+		end
+
+		function Tab:AddDevCircle(Configs)
+			local Devs = Configs.Devs or {}
+
+			local Holder = Create("Frame", Container, {
+				Size = UDim2.new(1, 0, 0, 80),
+				Name = "Option",
+				BackgroundTransparency = 1
+			})
+
+			local CircleSize = 50
+			local Spacing = 70
+			local StartX = 10
+
+			for i, dev in ipairs(Devs) do
+				local xPos = StartX + (i - 1) * Spacing
+
+				local CircleFrame = Create("Frame", Holder, {
+					Size = UDim2.new(0, CircleSize, 0, CircleSize),
+					Position = UDim2.new(0, xPos, 0, 5),
+					BackgroundTransparency = 1
+				})
+
+				local AvatarImg = InsertTheme(Create("ImageLabel", CircleFrame, {
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundColor3 = Theme["Color Hub 2"],
+					Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. tostring(dev.Id) .. "&width=150&height=150&format=png",
+					ScaleType = Enum.ScaleType.Crop
+				}), "Frame")
+				Make("Corner", AvatarImg, UDim.new(1, 0))
+				Make("Stroke", AvatarImg)
+
+				local NameLabel = InsertTheme(Create("TextLabel", CircleFrame, {
+					Size = UDim2.new(1, 10, 0, 14),
+					Position = UDim2.new(0.5, 0, 1, 3),
+					AnchorPoint = Vector2.new(0.5, 0),
+					BackgroundTransparency = 1,
+					Font = Enum.Font.GothamBold,
+					TextSize = 8,
+					TextColor3 = Theme["Color Text"],
+					Text = dev.Name or "",
+					TextTruncate = Enum.TextTruncate.AtEnd
+				}), "Text")
+			end
+
+			local DevCircle = {}
+			function DevCircle:Visible(...) Funcs:ToggleVisible(Holder, ...) end
+			function DevCircle:Destroy() Holder:Destroy() end
+			return DevCircle
+		end
+
+	function Tab:AddDiscordInvite(Configs)
 	local Title = Configs[1] or Configs.Name or Configs.Title or "Discord Server"
 	local Description = Configs[2] or Configs.Desc or Configs.Description or ""
 	local Logo = Configs[3] or Configs.Icon or Configs.Logo or ""
