@@ -1823,7 +1823,7 @@ function lopklib:MakeWindow(Configs)
 
 			-- Track الخارجي (الكبسولة)
 			local ToggleHolder = Create("Frame", Button, {
-				Size             = UDim2.new(0, 52, 0, 28),
+				Size             = UDim2.new(0, 42, 0, 22),
 				Position         = UDim2.new(1, -8, 0.5, 0),
 				AnchorPoint      = Vector2.new(1, 0.5),
 				BackgroundColor3 = Color3.fromRGB(18, 18, 18),
@@ -1855,8 +1855,8 @@ function lopklib:MakeWindow(Configs)
 
 			-- الكنوب (الدائرة المتحركة)
 			local Knob = Create("Frame", ToggleHolder, {
-				Size             = UDim2.new(0, 20, 0, 20),
-				Position         = UDim2.new(0, 14, 0.5, 0),
+				Size             = UDim2.new(0, 16, 0, 16),
+				Position         = UDim2.new(0, 11, 0.5, 0),
 				AnchorPoint      = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(55, 55, 55),
 				BorderSizePixel  = 0,
@@ -1878,7 +1878,7 @@ function lopklib:MakeWindow(Configs)
 			-- حلقة نبض عند التفعيل
 			local function SpawnPulse()
 				local ring = Create("Frame", ToggleHolder, {
-					Size             = UDim2.new(0, 20, 0, 20),
+					Size             = UDim2.new(0, 16, 0, 16),
 					Position         = UDim2.new(1, -14, 0.5, 0),
 					AnchorPoint      = Vector2.new(0.5, 0.5),
 					BackgroundTransparency = 1,
@@ -1907,14 +1907,14 @@ function lopklib:MakeWindow(Configs)
 				Funcs:FireCallback(Callback, Default)
 				if Default then
 					-- ON: كنوب يمين أبيض/فضي — AnchorPoint ثابت (0.5,0.5)
-					CreateTween({Knob, "Position", UDim2.new(0, 38, 0.5, 0), 0.28})
+					CreateTween({Knob, "Position", UDim2.new(0, 31, 0.5, 0), 0.28})
 					CreateTween({Knob, "BackgroundColor3", Color3.fromRGB(235, 235, 235), 0.25})
 					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(25, 25, 28), 0.25})
 					THStroke.Color = Color3.fromRGB(170, 170, 170)
 					task.delay(0.05, SpawnPulse)
 				else
 					-- OFF: كنوب يسار رمادي غامق
-					CreateTween({Knob, "Position", UDim2.new(0, 14, 0.5, 0), 0.28})
+					CreateTween({Knob, "Position", UDim2.new(0, 11, 0.5, 0), 0.28})
 					CreateTween({Knob, "BackgroundColor3", Color3.fromRGB(55, 55, 55), 0.25})
 					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(18, 18, 18), 0.25})
 					THStroke.Color = Color3.fromRGB(55, 55, 55)
