@@ -1823,12 +1823,12 @@ function lopklib:MakeWindow(Configs)
 
 			-- Track الخارجي (الكبسولة)
 			local ToggleHolder = Create("Frame", Button, {
-				Size             = UDim2.new(0, 46, 0, 24),
+				Size             = UDim2.new(0, 52, 0, 28),
 				Position         = UDim2.new(1, -8, 0.5, 0),
 				AnchorPoint      = Vector2.new(1, 0.5),
 				BackgroundColor3 = Color3.fromRGB(18, 18, 18),
 				BorderSizePixel  = 0,
-				ClipsDescendants = true,
+				ClipsDescendants = false,
 			})
 			Make("Corner", ToggleHolder, UDim.new(0.5, 0))
 
@@ -1855,7 +1855,7 @@ function lopklib:MakeWindow(Configs)
 
 			-- الكنوب (الدائرة المتحركة)
 			local Knob = Create("Frame", ToggleHolder, {
-				Size             = UDim2.new(0, 18, 0, 18),
+				Size             = UDim2.new(0, 22, 0, 22),
 				Position         = UDim2.new(0, 3, 0.5, 0),
 				AnchorPoint      = Vector2.new(0, 0.5),
 				BackgroundColor3 = Color3.fromRGB(55, 55, 55),
@@ -1878,8 +1878,8 @@ function lopklib:MakeWindow(Configs)
 			-- حلقة نبض عند التفعيل
 			local function SpawnPulse()
 				local ring = Create("Frame", ToggleHolder, {
-					Size             = UDim2.new(0, 18, 0, 18),
-					Position         = UDim2.new(1, -21, 0.5, 0),
+					Size             = UDim2.new(0, 22, 0, 22),
+					Position         = UDim2.new(1, -25, 0.5, 0),
 					AnchorPoint      = Vector2.new(0.5, 0.5),
 					BackgroundTransparency = 1,
 					BorderSizePixel  = 0,
@@ -1907,7 +1907,7 @@ function lopklib:MakeWindow(Configs)
 				Funcs:FireCallback(Callback, Default)
 				if Default then
 					-- ON: كنوب يمين أبيض/فضي لامع
-					CreateTween({Knob, "Position", UDim2.new(1, -21, 0.5, 0), 0.28})
+					CreateTween({Knob, "Position", UDim2.new(1, -25, 0.5, 0), 0.28})
 					CreateTween({Knob, "AnchorPoint", Vector2.new(1, 0.5), 0.28})
 					CreateTween({Knob, "BackgroundColor3", Color3.fromRGB(235, 235, 235), 0.25})
 					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(25, 25, 28), 0.25})
@@ -2245,36 +2245,62 @@ function lopklib:MakeWindow(Configs)
 				BackgroundTransparency = 1
 			})
 
-			local SliderBar = InsertTheme(Create("Frame", SliderHolder, {
-				BackgroundColor3  = Theme["Color Stroke"],
-				Size              = UDim2.new(1, -20, 0, 5),
+			local SliderBar = Create("Frame", SliderHolder, {
+				BackgroundColor3  = Color3.fromRGB(22, 22, 22),
+				Size              = UDim2.new(1, -20, 0, 6),
 				Position          = UDim2.new(0.5, 0, 0.5),
-				AnchorPoint       = Vector2.new(0.5, 0.5)
-			}), "Stroke") Make("Corner", SliderBar)
+				AnchorPoint       = Vector2.new(0.5, 0.5),
+				BorderSizePixel   = 0,
+			}) Make("Corner", SliderBar)
+			-- stroke رفيع أبيض حول الـ track
+			local SBStroke = Instance.new("UIStroke", SliderBar)
+			SBStroke.Thickness = 1
+			SBStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			SBStroke.Color = Color3.fromRGB(60, 60, 60)
 
-			local Indicator = InsertTheme(Create("Frame", SliderBar, {
-				BackgroundColor3  = Theme["Color Theme"],
+			-- الجزء المملوء (أبيض)
+			local Indicator = Create("Frame", SliderBar, {
+				BackgroundColor3  = Color3.fromRGB(255, 255, 255),
 				Size              = UDim2.fromScale(0.3, 1),
 				BorderSizePixel   = 0
-			}), "Theme") Make("Corner", Indicator)
+			}) Make("Corner", Indicator)
+			-- gradient على الـ fill ليكون أكثر عمقاً
+			local IndGrad = Instance.new("UIGradient", Indicator)
+			IndGrad.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(180, 180, 180)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+			})
 
-			-- Glow effect on indicator
-			local IndicatorGlow = InsertTheme(Create("Frame", SliderBar, {
-				BackgroundColor3  = Theme["Color Theme"],
-				Size              = UDim2.fromScale(0.3, 3),
+			-- توهج أسفل الـ fill
+			local IndicatorGlow = Create("Frame", SliderBar, {
+				BackgroundColor3  = Color3.fromRGB(255, 255, 255),
+				Size              = UDim2.fromScale(0.3, 4),
 				Position          = UDim2.new(0, 0, 0.5),
 				AnchorPoint       = Vector2.new(0, 0.5),
-				BackgroundTransparency = 0.7,
+				BackgroundTransparency = 0.82,
 				BorderSizePixel   = 0
-			}), "Theme") Make("Corner", IndicatorGlow)
+			}) Make("Corner", IndicatorGlow)
 
+			-- الـ Handle (مقبض الشريط) — مربع فضي صغير
 			local SliderIcon = Create("Frame", SliderBar, {
-				Size              = UDim2.new(0, 6, 0, 14),
-				BackgroundColor3  = Color3.fromRGB(255, 230, 80),
+				Size              = UDim2.new(0, 5, 0, 16),
+				BackgroundColor3  = Color3.fromRGB(240, 240, 240),
 				Position          = UDim2.fromScale(0.3, 0.5),
 				AnchorPoint       = Vector2.new(0.5, 0.5),
-				BackgroundTransparency = 0.1
-			}) Make("Corner", SliderIcon)
+				BackgroundTransparency = 0,
+				BorderSizePixel   = 0,
+				ZIndex            = 3,
+			}) Make("Corner", SliderIcon, UDim.new(0, 3))
+			-- توهج حول الـ handle
+			local HGlow = Create("Frame", SliderBar, {
+				Size              = UDim2.new(0, 14, 0, 22),
+				Position          = UDim2.fromScale(0.3, 0.5),
+				AnchorPoint       = Vector2.new(0.5, 0.5),
+				BackgroundColor3  = Color3.fromRGB(255, 255, 255),
+				BackgroundTransparency = 0.88,
+				BorderSizePixel   = 0,
+				ZIndex            = 2,
+			}) Make("Corner", HGlow)
 
 			local LabelVal = InsertTheme(Create("TextLabel", SliderHolder, {
 				Size              = UDim2.new(0, 14, 0, 14),
@@ -2310,7 +2336,8 @@ function lopklib:MakeWindow(Configs)
 			local function UpdateValues()
 				local sp = SliderIcon.Position.X.Scale
 				Indicator.Size     = UDim2.new(sp, 0, 1, 0)
-				IndicatorGlow.Size = UDim2.new(sp, 0, 3, 0)
+				IndicatorGlow.Size = UDim2.new(sp, 0, 4, 0)
+				HGlow.Position     = UDim2.fromScale(sp, 0.5)
 				local NewValue     = math.floor(((sp * Max) / Max) * (Max - Min) + Min)
 				UpdateLabel(NewValue)
 			end
@@ -2337,6 +2364,7 @@ function lopklib:MakeWindow(Configs)
 				local MaxR = Max * Increase
 				local SP   = (NewValue - MinR) / (MaxR - MinR)
 				CreateTween({SliderIcon, "Position", UDim2.fromScale(math.clamp(SP, 0, 1), 0.5), 0.3, true})
+				CreateTween({HGlow,     "Position", UDim2.fromScale(math.clamp(SP, 0, 1), 0.5), 0.3, true})
 			end; SetSlider(Default)
 
 			SliderIcon:GetPropertyChangedSignal("Position"):Connect(UpdateValues)
