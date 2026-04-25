@@ -1819,28 +1819,85 @@ function lopklib:MakeWindow(Configs)
 			local Default  = Configs[2] or Configs.Default or false
 			if CheckFlag(Flag) then Default = GetFlag(Flag) end
 
-			local Button, LabelFunc = ButtonFrame(Container, TName, TDesc, UDim2.new(1, -42))
+			local Button, LabelFunc = ButtonFrame(Container, TName, TDesc, UDim2.new(1, -52))
 
-			local ToggleHolder = InsertTheme(Create("Frame", Button, {
-				Size             = UDim2.new(0, 36, 0, 18),
-				Position         = UDim2.new(1, -10, 0.5),
+			-- Track الخارجي (الكبسولة)
+			local ToggleHolder = Create("Frame", Button, {
+				Size             = UDim2.new(0, 46, 0, 24),
+				Position         = UDim2.new(1, -8, 0.5, 0),
 				AnchorPoint      = Vector2.new(1, 0.5),
-				BackgroundColor3 = Theme["Color Stroke"]
-			}), "Stroke") Make("Corner", ToggleHolder, UDim.new(0.5, 0))
+				BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+				BorderSizePixel  = 0,
+				ClipsDescendants = true,
+			})
+			Make("Corner", ToggleHolder, UDim.new(0.5, 0))
 
-			local SliderTrack = Create("Frame", ToggleHolder, {
-				BackgroundTransparency = 1,
-				Size        = UDim2.new(0.8, 0, 0.8, 0),
-				Position    = UDim2.new(0.5, 0, 0.5, 0),
-				AnchorPoint = Vector2.new(0.5, 0.5)
+			-- Stroke خارجي
+			local THStroke = Instance.new("UIStroke", ToggleHolder)
+			THStroke.Thickness = 1
+			THStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			THStroke.Color = Color3.fromRGB(55, 55, 55)
+
+			-- خط علوي لامع (gradient)
+			local TopShine = Create("Frame", ToggleHolder, {
+				Size             = UDim2.new(1, 0, 0, 1),
+				Position         = UDim2.new(0, 0, 0, 0),
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BorderSizePixel  = 0,
+			})
+			local ShineGrad = Instance.new("UIGradient", TopShine)
+			ShineGrad.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0,    Color3.fromRGB(0,0,0)),
+				ColorSequenceKeypoint.new(0.35, Color3.fromRGB(255,255,255)),
+				ColorSequenceKeypoint.new(0.65, Color3.fromRGB(255,255,255)),
+				ColorSequenceKeypoint.new(1,    Color3.fromRGB(0,0,0)),
 			})
 
-			local Toggle = InsertTheme(Create("Frame", SliderTrack, {
-				Size             = UDim2.new(0, 12, 0, 12),
-				Position         = UDim2.new(0, 0, 0.5),
+			-- الكنوب (الدائرة المتحركة)
+			local Knob = Create("Frame", ToggleHolder, {
+				Size             = UDim2.new(0, 18, 0, 18),
+				Position         = UDim2.new(0, 3, 0.5, 0),
 				AnchorPoint      = Vector2.new(0, 0.5),
-				BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-			}), "Theme") Make("Corner", Toggle, UDim.new(0.5, 0))
+				BackgroundColor3 = Color3.fromRGB(55, 55, 55),
+				BorderSizePixel  = 0,
+				ZIndex           = 3,
+			})
+			Make("Corner", Knob, UDim.new(0.5, 0))
+
+			-- بريق صغير فوق الكنوب
+			local KnobShine = Create("Frame", Knob, {
+				Size             = UDim2.new(0, 7, 0, 3),
+				Position         = UDim2.new(0, 4, 0, 4),
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BackgroundTransparency = 0.7,
+				BorderSizePixel  = 0,
+				ZIndex           = 4,
+			})
+			Make("Corner", KnobShine, UDim.new(1, 0))
+
+			-- حلقة نبض عند التفعيل
+			local function SpawnPulse()
+				local ring = Create("Frame", ToggleHolder, {
+					Size             = UDim2.new(0, 18, 0, 18),
+					Position         = UDim2.new(1, -21, 0.5, 0),
+					AnchorPoint      = Vector2.new(0.5, 0.5),
+					BackgroundTransparency = 1,
+					BorderSizePixel  = 0,
+					ZIndex           = 2,
+				})
+				Make("Corner", ring, UDim.new(0.5, 0))
+				local stroke = Instance.new("UIStroke", ring)
+				stroke.Thickness = 1
+				stroke.Color = Color3.fromRGB(255, 255, 255)
+				stroke.Transparency = 0.3
+				TweenService:Create(ring, TweenInfo.new(0.45, Enum.EasingStyle.Quart), {
+					Size = UDim2.new(0, 34, 0, 34),
+				}):Play()
+				TweenService:Create(stroke, TweenInfo.new(0.45), {
+					Transparency = 1
+				}):Play()
+				task.delay(0.5, function() ring:Destroy() end)
+			end
 
 			local WaitClickT
 			local function SetToggle(Val)
@@ -1849,16 +1906,22 @@ function lopklib:MakeWindow(Configs)
 				SetFlag(Flag, Default)
 				Funcs:FireCallback(Callback, Default)
 				if Default then
-					CreateTween({Toggle,       "Position",         UDim2.new(1, 0, 0.5), 0.22})
-					CreateTween({Toggle,       "BackgroundTransparency", 0, 0.22})
-					CreateTween({Toggle,       "AnchorPoint",      Vector2.new(1, 0.5), 0.22})
-					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(0, 40, 60), 0.22})
+					-- ON: كنوب يمين أبيض/فضي لامع
+					CreateTween({Knob, "Position", UDim2.new(1, -21, 0.5, 0), 0.28})
+					CreateTween({Knob, "AnchorPoint", Vector2.new(1, 0.5), 0.28})
+					CreateTween({Knob, "BackgroundColor3", Color3.fromRGB(235, 235, 235), 0.25})
+					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(25, 25, 28), 0.25})
+					THStroke.Color = Color3.fromRGB(170, 170, 170)
+					task.delay(0.05, SpawnPulse)
 				else
-					CreateTween({Toggle,       "Position",         UDim2.new(0, 0, 0.5), 0.22})
-					CreateTween({Toggle,       "BackgroundTransparency", 0.7, 0.22})
-					CreateTween({Toggle,       "AnchorPoint",      Vector2.new(0, 0.5), 0.22})
-					CreateTween({ToggleHolder, "BackgroundColor3", Theme["Color Stroke"], 0.22})
+					-- OFF: كنوب يسار رمادي غامق
+					CreateTween({Knob, "Position", UDim2.new(0, 3, 0.5, 0), 0.28})
+					CreateTween({Knob, "AnchorPoint", Vector2.new(0, 0.5), 0.28})
+					CreateTween({Knob, "BackgroundColor3", Color3.fromRGB(55, 55, 55), 0.25})
+					CreateTween({ToggleHolder, "BackgroundColor3", Color3.fromRGB(18, 18, 18), 0.25})
+					THStroke.Color = Color3.fromRGB(55, 55, 55)
 				end
+				task.wait(0.3)
 				WaitClickT = false
 			end; task.spawn(SetToggle, Default)
 
