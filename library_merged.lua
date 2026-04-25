@@ -599,14 +599,20 @@ local function ButtonFrame(Container, Title, Description, HolderSize)
 		Name          = "Option"
 	}) Make("Corner", Frame, UDim.new(0, 6))
 
-	-- Subtle neon left border glow
-	local LeftGlow = InsertTheme(Create("Frame", Frame, {
+	-- Stroke أسود/فضي حول كل عنصر
+	local FStroke = Instance.new("UIStroke", Frame)
+	FStroke.Thickness = 1
+	FStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	FStroke.Color = Color3.fromRGB(45, 45, 45)
+
+	-- خط أبيض/فضي يسار
+	local LeftGlow = Create("Frame", Frame, {
 		Size             = UDim2.new(0, 2, 0.6, 0),
 		Position         = UDim2.new(0, 0, 0.2, 0),
-		BackgroundColor3 = Theme["Color Theme"],
+		BackgroundColor3 = Color3.fromRGB(200, 200, 200),
 		BorderSizePixel  = 0,
-		BackgroundTransparency = 0.5
-	}), "Theme") Make("Corner", LeftGlow, UDim.new(0.5, 0))
+		BackgroundTransparency = 0.3
+	}) Make("Corner", LeftGlow, UDim.new(0.5, 0))
 
 	LabelHolder = Create("Frame", Frame, {
 		AutomaticSize      = "Y",
@@ -1150,7 +1156,7 @@ function lopklib:MakeWindow(Configs)
 		Size               = UDim2.new(1, 0, 1, 0),
 		Position           = UDim2.new(0, 0, 0, 0),
 		BackgroundTransparency = 1,
-		Image              = "rbxassetid://88293683920607",
+		Image              = "rbxassetid://1775370483672",
 		ImageTransparency  = 0,
 		ScaleType          = Enum.ScaleType.Crop,
 		ZIndex             = 0,
@@ -2395,35 +2401,62 @@ function lopklib:MakeWindow(Configs)
 
 			local Button, LabelFunc = ButtonFrame(Container, TName, TDesc, UDim2.new(1, -42))
 
-			local SelectedFrame = InsertTheme(Create("Frame", Button, {
-				Size             = UDim2.new(0, 155, 0, 18),
+			local SelectedFrame = Create("Frame", Button, {
+				Size             = UDim2.new(0, 155, 0, 22),
 				Position         = UDim2.new(1, -10, 0.5),
 				AnchorPoint      = Vector2.new(1, 0.5),
-				BackgroundColor3 = Theme["Color Stroke"]
-			}), "Stroke") Make("Corner", SelectedFrame, UDim.new(0, 4))
+				BackgroundColor3 = Color3.fromRGB(14, 14, 14),
+				BorderSizePixel  = 0,
+			}) Make("Corner", SelectedFrame, UDim.new(0, 6))
+			-- Stroke فضي رفيع
+			local SFStroke = Instance.new("UIStroke", SelectedFrame)
+			SFStroke.Thickness = 1
+			SFStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			SFStroke.Color = Color3.fromRGB(70, 70, 70)
+			-- خط علوي لامع
+			local SFShine = Create("Frame", SelectedFrame, {
+				Size             = UDim2.new(1, 0, 0, 1),
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BorderSizePixel  = 0,
+			})
+			local SFGrad = Instance.new("UIGradient", SFShine)
+			SFGrad.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0,   Color3.fromRGB(0,0,0)),
+				ColorSequenceKeypoint.new(0.3, Color3.fromRGB(200,200,200)),
+				ColorSequenceKeypoint.new(0.7, Color3.fromRGB(200,200,200)),
+				ColorSequenceKeypoint.new(1,   Color3.fromRGB(0,0,0)),
+			})
 
-			local TextBoxInput = InsertTheme(Create("TextBox", SelectedFrame, {
+			local TextBoxInput = Create("TextBox", SelectedFrame, {
 				Size              = UDim2.new(0.85, 0, 0.85, 0),
 				AnchorPoint       = Vector2.new(0.5, 0.5),
 				Position          = UDim2.new(0.5, 0, 0.5, 0),
 				BackgroundTransparency = 1,
 				Font              = Enum.Font.GothamBold,
 				TextScaled        = true,
-				TextColor3        = Theme["Color Text"],
+				TextColor3        = Color3.fromRGB(220, 220, 220),
 				ClearTextOnFocus  = TClearText,
 				PlaceholderText   = TPlaceholderText,
-				PlaceholderColor3 = Theme["Color Dark Text"],
+				PlaceholderColor3 = Color3.fromRGB(90, 90, 90),
 				Text              = ""
-			}), "Text")
+			})
 
-			local PencilIcon = InsertTheme(Create("ImageLabel", SelectedFrame, {
+			-- تأثير focus: stroke يصبح أبيض
+			TextBoxInput.Focused:Connect(function()
+				CreateTween({SFStroke, "Color", Color3.fromRGB(180, 180, 180), 0.2})
+			end)
+			TextBoxInput.FocusLost:Connect(function()
+				CreateTween({SFStroke, "Color", Color3.fromRGB(70, 70, 70), 0.2})
+			end)
+
+			local PencilIcon = Create("ImageLabel", SelectedFrame, {
 				Size              = UDim2.new(0, 11, 0, 11),
 				Position          = UDim2.new(0, -5, 0.5),
 				AnchorPoint       = Vector2.new(1, 0.5),
 				Image             = "rbxassetid://15637081879",
-				ImageColor3       = Theme["Color Dark Text"],
+				ImageColor3       = Color3.fromRGB(100, 100, 100),
 				BackgroundTransparency = 1
-			}), "DarkText")
+			})
 
 			local TextBox = {}
 			local function Input()
@@ -2436,7 +2469,7 @@ function lopklib:MakeWindow(Configs)
 			end
 			TextBoxInput.FocusLost:Connect(Input); Input()
 			TextBoxInput.FocusLost:Connect(function()
-				CreateTween({PencilIcon, "ImageColor3", Theme["Color Dark Text"], 0.2})
+				CreateTween({PencilIcon, "ImageColor3", Color3.fromRGB(100, 100, 100), 0.2})
 			end)
 			TextBoxInput.Focused:Connect(function()
 				CreateTween({PencilIcon, "ImageColor3", Theme["Color Theme"], 0.2})
