@@ -763,9 +763,9 @@ function lopklib:Notify(Configs)
 	local Image       = Configs.Image or "rbxassetid://113449060491896"
 
 	local Colors = {
-		Info    = Color3.fromRGB(0,   200, 255),
-		Success = Color3.fromRGB(0,   255, 160),
-		Warning = Color3.fromRGB(255, 210, 0),
+		Info    = Color3.fromRGB(220, 220, 220),
+		Success = Color3.fromRGB(200, 200, 200),
+		Warning = Color3.fromRGB(180, 180, 180),
 		Error   = Color3.fromRGB(255, 60,  80)
 	}
 	local TypeColor = Colors[Type] or Colors.Info
@@ -1752,7 +1752,7 @@ function lopklib:MakeWindow(Configs)
 				Size             = UDim2.new(0, 5, 0, 5),
 				Position         = UDim2.new(0, 22, 0.5),
 				AnchorPoint      = Vector2.new(0, 0.5),
-				BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+				BackgroundColor3 = Color3.fromRGB(200, 200, 200)
 			}), "Theme") Make("Corner", Dot, UDim.new(0.5, 0))
 
 			local Section = {}
@@ -1994,7 +1994,7 @@ function lopklib:MakeWindow(Configs)
 			local DropFrame = Create("Frame", NoClickFrame, {
 				Size               = UDim2.new(SelectedFrame.Size.X, 0, 0),
 				BackgroundTransparency = 0.06,
-				BackgroundColor3   = Color3.fromRGB(4, 12, 32),
+				BackgroundColor3   = Color3.fromRGB(12, 12, 12),
 				AnchorPoint        = Vector2.new(0, 1),
 				Name               = "DropdownFrame",
 				ClipsDescendants   = true,
@@ -2601,10 +2601,10 @@ function lopklib:MakeWindow(Configs)
 				end
 
 				if MembersOnline > 0 then
-					CreateStatusIndicator(Color3.fromRGB(255, 0, 0), MembersOnline .. " Online")
+					CreateStatusIndicator(Color3.fromRGB(180, 180, 180), MembersOnline .. " Online")
 				end
 				if TotalMembers > 0 then
-					CreateStatusIndicator(Color3.fromRGB(255, 0, 0), TotalMembers .. " Members")
+					CreateStatusIndicator(Color3.fromRGB(160, 160, 160), TotalMembers .. " Members")
 				end
 			end
 
