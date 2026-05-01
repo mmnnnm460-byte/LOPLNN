@@ -21,7 +21,7 @@ local lopklib = {
 				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
 			["Color Hub 2"]      = Color3.fromRGB(15, 15, 15),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
+			["Color Stroke"]     = Color3.fromRGB(160, 160, 160),
 			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(200, 200, 200),
@@ -36,7 +36,7 @@ local lopklib = {
 				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
 			["Color Hub 2"]      = Color3.fromRGB(15, 15, 15),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
+			["Color Stroke"]     = Color3.fromRGB(160, 160, 160),
 			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(200, 200, 200),
@@ -51,7 +51,7 @@ local lopklib = {
 				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
 			["Color Hub 2"]      = Color3.fromRGB(15, 15, 15),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
+			["Color Stroke"]     = Color3.fromRGB(160, 160, 160),
 			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(200, 200, 200),
@@ -66,7 +66,7 @@ local lopklib = {
 				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
 			}),
 			["Color Hub 2"]      = Color3.fromRGB(15, 15, 15),
-			["Color Stroke"]     = Color3.fromRGB(255, 255, 255),
+			["Color Stroke"]     = Color3.fromRGB(160, 160, 160),
 			["Color Theme"]      = Color3.fromRGB(255, 255, 255),
 			["Color Text"]       = Color3.fromRGB(255, 255, 255),
 			["Color Dark Text"]  = Color3.fromRGB(200, 200, 200),
@@ -1956,12 +1956,18 @@ function lopklib:MakeWindow(Configs)
 
 			local Button, LabelFunc = ButtonFrame(Container, DName, DDesc, UDim2.new(1, -180))
 
-			local SelectedFrame = InsertTheme(Create("Frame", Button, {
+			local SelectedFrame = Create("Frame", Button, {
 				Size             = UDim2.new(0, 150, 0, 18),
 				Position         = UDim2.new(1, -10, 0.5),
 				AnchorPoint      = Vector2.new(1, 0.5),
-				BackgroundColor3 = Theme["Color Stroke"]
-			}), "Stroke") Make("Corner", SelectedFrame, UDim.new(0, 4))
+				BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			}) Make("Corner", SelectedFrame, UDim.new(0, 4))
+			-- Stroke فضي رفيع حول الـ SelectedFrame
+			local SFSelStroke = Create("UIStroke", SelectedFrame, {
+				Color           = Color3.fromRGB(100, 100, 100),
+				Thickness       = 1,
+				ApplyStrokeMode = "Border"
+			})
 
 			local ActiveLabel = InsertTheme(Create("TextLabel", SelectedFrame, {
 				Size              = UDim2.new(0.85, 0, 0.85, 0),
