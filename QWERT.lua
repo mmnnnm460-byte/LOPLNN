@@ -1,4 +1,4 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/mmnnnm460-byte/LOPLNN/refs/heads/main/library_merged.lua"))()
+ocaal Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/mmnnnm460-byte/LOPLNN/refs/heads/main/library_merged.lua"))()
 
 local Window = Library:MakeWindow({
     Title = " Hub | V3.0",
@@ -90,7 +90,7 @@ end
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
-local welcomeBlock = createInfoBlock(infoTab, "Seja Bem Vindo Ao Lyra Hub Hoje E Dia: ", getCurrentDate())
+local welcomeBlock = createInfoBlock(infoTab, "", getCurrentDate())
 infoTab:AddParagraph({"Seu Nickname: " .. (localPlayer.Name or "Desconhecido")})
 infoTab:AddParagraph({"Seu ID: " .. tostring(localPlayer.UserId or 0)})
 
@@ -122,7 +122,7 @@ end
 task.spawn(function()
     while true do
         task.wait(0.5)
-        setBlockText(welcomeBlock, "Seja Bem Vindo Ao Lyra Hub Hoje É Dia: ", getCurrentDate())
+        setBlockText(welcomeBlock, "", getCurrentDate())
         local e = os.clock() - startClock
         local h = math.floor(e/3600)
         local m = math.floor((e%3600)/60)
