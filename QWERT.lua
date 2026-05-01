@@ -1,4 +1,4 @@
-ocaal Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/mmnnnm460-byte/LOPLNN/refs/heads/main/library_merged.lua"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/mmnnnm460-byte/LOPLNN/refs/heads/main/library_merged.lua"))()
 
 local Window = Library:MakeWindow({
     Title = " Hub | V3.0",
