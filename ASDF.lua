@@ -46,7 +46,7 @@ infoTab:AddDiscordInvite({
 })
 
 infoTab:AddSection({ "fire" })
-infoTab:AddParagraph({ "سكربت مخصص  لل كلان الطائفه السماويه 🖕 " })
+infoTab:AddParagraph({ "سكربت مخصص  لل كلان الطائفه السماويه  " })
 infoTab:AddParagraph({ "fire", "fire" })
 
 infoTab:AddSection({ "حقوق" })
