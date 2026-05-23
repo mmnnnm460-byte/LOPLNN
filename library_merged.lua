@@ -819,26 +819,46 @@ function lopklib:MakeWindow(Configs)
 	end)
 
 
-	-- Outer animated black/white stroke
-	local OuterStroke = Create("UIStroke", MainFrame, {
-		Color           = Color3.fromRGB(255, 255, 255),
-		Thickness       = 1.8,
-		ApplyStrokeMode = "Border"
-	})
-	-- أنيميشن متحرك أسود وأبيض للحواف
-	task.spawn(function()
-		local angle = 0
-		while MainFrame and MainFrame.Parent do
-			angle = (angle + 4) % 360
-			local wave = (math.sin(math.rad(angle)) + 1) / 2
-			local brightness = math.floor(wave * 255)
-			pcall(function()
-				OuterStroke.Color = Color3.fromRGB(brightness, brightness, brightness)
-			end)
-			task.wait(0.03)
-		end
-	end)
+	-- [[ أزرق ملكي متحرك للحواف ]]
+local OuterStroke = Create("UIStroke", MainFrame, {
+    Color           = Color3.fromRGB(25, 70, 185),
+    Thickness       = 1.8,
+    ApplyStrokeMode = "Border"
+})
 
+local StrokeGradient = Instance.new("UIGradient")
+StrokeGradient.Parent = OuterStroke
+
+task.spawn(function()
+    local angle = 0
+    while MainFrame and MainFrame.Parent do
+        angle = (angle + 4) % 360
+
+        local wave = (math.sin(math.rad(angle)) + 1) / 2
+
+        -- تدرج أزرق ملكي متحرك
+        local r = math.floor(10  + wave * 15)   -- 10 → 25
+        local g = math.floor(30  + wave * 40)   -- 30 → 70
+        local b = math.floor(120 + wave * 65)   -- 120 → 185
+
+        -- لون ثانوي سماوي فاتح عند الذروة
+        local r2 = math.floor(100 * wave)
+        local g2 = math.floor(180 * wave)
+        local b2 = math.floor(120 + wave * 135) -- 120 → 255
+
+        pcall(function()
+            StrokeGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0,   Color3.fromRGB(r,  g,  b)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(r2, g2, b2)),
+                ColorSequenceKeypoint.new(1,   Color3.fromRGB(r,  g,  b))
+            })
+            StrokeGradient.Rotation = angle
+        end)
+
+        task.wait(0.03)
+    end
+end)
+		
 	local Components    = Create("Folder", MainFrame,  { Name = "Components" })
 	local DropdownHolder = Create("Folder", ScreenGui, { Name = "Dropdown"   })
 
