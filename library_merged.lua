@@ -1228,7 +1228,7 @@ end)
 			Size = UDim2.new(1, 0, 0, 26)
 		}) Make("Corner", TabSelect)
 
-	-- أنيميشن حواف التبويب أزرق ملكي
+-- أنيميشن حواف التبويب أزرق ملكي
 local TabStroke = Create("UIStroke", TabSelect, {
     Color           = Color3.fromRGB(25, 70, 185),
     Thickness       = 1,
@@ -1236,20 +1236,18 @@ local TabStroke = Create("UIStroke", TabSelect, {
     Transparency    = 0.3
 })
 task.spawn(function()
-    local angle = math.random(0, 359)
+    local rot = math.random(0, 359)
     while TabSelect and TabSelect.Parent do
-        angle = (angle + 3) % 360
-        local wave = (math.sin(math.rad(angle)) + 1) / 2
-
+        rot = (rot + 2) % 360
+        local wave = (math.sin(math.rad(rot)) + 1) / 2
         local r = math.floor(10  + wave * 90)
         local g = math.floor(30  + wave * 100)
-        local b = math.floor(150 + wave * 105)
-
+        local b = math.floor(120 + wave * 135)
         pcall(function()
             TabStroke.Color = Color3.fromRGB(r, g, b)
             TabStroke.Transparency = 0.2 + wave * 0.4
         end)
-        task.wait(0.04)
+        task.wait(0.01)
     end
 end)
 
