@@ -103,8 +103,6 @@ local STR = {
         accountAge = "عمر الحساب",
         noClipboard = "الاكزكيوتور لا يدعم النسخ",
         yearsShort = "س",
-        skinApplied = "✅ تم لبس السكن!",
-        skinFailed = "❌ فشل لبس السكن: %s",
     },
     en = {
         subtitle = "Search for any Roblox player",
@@ -143,8 +141,6 @@ local STR = {
         accountAge = "Account age",
         noClipboard = "Executor does not support clipboard",
         yearsShort = "y",
-        skinApplied = "✅ Skin applied!",
-        skinFailed = "❌ Skin failed: %s",
     },
 }
 
@@ -409,6 +405,7 @@ local function pulseLoop(inst, prop, a, b, time)
     return t
 end
 
+-- يرجع لون فعلي سواء انمرر اسم "role" (نص) أو Color3 مباشر
 local function resolveColor(v)
     if type(v) == "string" then return COLORS[v], v end
     return v, nil
@@ -436,6 +433,7 @@ local function addPress(btn)
     btn.MouseLeave:Connect(function() tween(btn, { Size = base }, 0.18, Enum.EasingStyle.Back) end)
 end
 
+-- تسجيل عنصر يتلون تلقائيًا عند تبديل الثيم
 local function themedProp(inst, prop, role)
     inst[prop] = COLORS[role]
     table.insert(themeRegistry, { inst = inst, prop = prop, role = role })
@@ -469,6 +467,7 @@ local function applyMetallicStyle(target, thickness)
     return stroke
 end
 
+-- roleOrColor: مرر نص مثل "accent" عشان يتلون تلقائيًا مع الثيم، أو Color3 مباشر للألوان الثابتة (danger/good/warn)
 local function applyColorGlow(target, roleOrColor, thickness, baseTrans, pulseTrans, speed)
     local color, role = resolveColor(roleOrColor)
     local stroke = new("UIStroke", {
@@ -585,22 +584,9 @@ local currentOverlayKind = "history"
 local comparePanel
 local settingsPanel
 
+-- مراقبة حالة (Watch)
 local watchedSet = {}
 local watchedLastStatus = {}
-
--- ========== دالة لبس سكن لاعب معين (عليك أنت) ==========
-local function wearPlayerSkin(playerName)
-    local success, err = pcall(function()
-        local Event = game:GetService("ReplicatedStorage").ApplyMainAvatar
-        Event:FireServer("") -- بدون ID، يطبق سكن اللاعب
-    end)
-    if success then
-        flashStatus("✅ تم لبس سكن " .. playerName .. "!", COLORS.good)
-    else
-        flashStatus(string.format(T("skinFailed"), tostring(err)), COLORS.danger)
-    end
-end
--- =====================================================
 
 local function isFavorite(id)
     return favoritesSet[id] == true
@@ -634,6 +620,7 @@ local main = new("CanvasGroup", {
     Visible = false,
 }, gui)
 
+-- استرجاع آخر حجم/مكان محفوظ
 if persisted.window then
     local w = math.clamp(persisted.window.w or 320, MIN_SIZE.X, MAX_SIZE.X)
     local h = math.clamp(persisted.window.h or 486, MIN_SIZE.Y, MAX_SIZE.Y)
@@ -743,6 +730,7 @@ do
     end)
 end
 
+-- الهيدر: ZIndex مرفوع فوق مناطق تكبير الحجم (10) عشان زر الإغلاق ما يحتاج أكثر من ضغطة
 local header = new("Frame", { Size = UDim2.new(1, 0, 0, 50), BackgroundTransparency = 1, ZIndex = 15 }, main)
 
 local titleDot = new("Frame", {
@@ -1307,6 +1295,7 @@ local avatar = new("ImageLabel", {
 }, avatarRing)
 corner(UDim.new(1, 0), avatar)
 
+-- معاينة أفتار كبيرة: اضغط على الأفتار بالكرت يفتح معاينة كبيرة
 local avatarClickZone = new("TextButton", {
     Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 3,
 }, avatarRing)
@@ -1585,12 +1574,12 @@ local function addEntry(userData)
         Font = Enum.Font.GothamBold, TextSize = 12,
         TextColor3 = loadFailed and COLORS.warn or (unresolved and COLORS.subtext2 or COLORS.text),
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(44, 5), Size = UDim2.new(1, -152, 0, 16),
+        Position = UDim2.fromOffset(44, 5), Size = UDim2.new(1, -116, 0, 16),
         TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
     }, row)
     if not (unresolved or loadFailed) then applyTextShine(nameLbl, 2.2, 1.0) end
     if userData.hasVerifiedBadge and not (unresolved or loadFailed) then
-        local w = math.min(measureTextWidth(nameText, Enum.Font.GothamBold, 12), 110)
+        local w = math.min(measureTextWidth(nameText, Enum.Font.GothamBold, 12), 150)
         addVerifiedBadge(row, 44 + w + 4, 6)
     end
 
@@ -1598,30 +1587,13 @@ local function addEntry(userData)
         Text = loadFailed and ("ID: " .. userData.id .. " (اضغط لإعادة المحاولة)")
             or (unresolved and ("ID: " .. userData.id) or (userData.name and userData.name ~= "" and ("@" .. userData.name) or "")),
         Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = COLORS.subtext, BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(44, 21), Size = UDim2.new(1, -136, 0, 14),
+        Position = UDim2.fromOffset(44, 21), Size = UDim2.new(1, -100, 0, 14),
         TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
     }, row)
     if not (unresolved or loadFailed) then applyTextShine(userLbl, 2.4, 1.0) end
 
-    -- ==================== [زر لبس سكن اللاعب (عليك أنت)] ====================
-    local entrySkinBtn = new("TextButton", {
-        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -100, 0.5, -13),
-        BackgroundColor3 = COLORS.panel3, Text = "👕",
-        Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = COLORS.text, AutoButtonColor = false,
-    }, row)
-    corner(UDim.new(1, 0), entrySkinBtn)
-    addPress(entrySkinBtn)
-    addHover(entrySkinBtn, COLORS.accent, COLORS.panel3)
-    applyMetallicStyle(entrySkinBtn, 1.2)
-    applyColorGlow(entrySkinBtn, COLORS.accentB, 1, 0.45, 0.85, 1.3)
-    entrySkinBtn.MouseButton1Click:Connect(function()
-        local targetName = userData.name or userData.displayName or ("ID " .. userData.id)
-        wearPlayerSkin(targetName)
-    end)
-    -- =======================================================================
-
     local rowCopy = new("TextButton", {
-        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -68, 0.5, -13),
+        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -32, 0.5, -13),
         BackgroundColor3 = COLORS.panel3, Text = "📋",
         Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = COLORS.text, AutoButtonColor = false,
     }, row)
@@ -1639,7 +1611,7 @@ local function addEntry(userData)
     end)
 
     local clickZone = new("TextButton", {
-        Size = UDim2.new(1, -136, 1, 0), Position = UDim2.fromOffset(40, 0),
+        Size = UDim2.new(1, -100, 1, 0), Position = UDim2.fromOffset(40, 0),
         BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
     }, row)
     clickZone.MouseEnter:Connect(function() tween(row, { BackgroundColor3 = COLORS.panel3 }, 0.15) end)
@@ -1890,6 +1862,7 @@ settingsBtn.MouseButton1Click:Connect(function()
     if settingsPanel then settingsPanel.Visible = true end
 end)
 
+-- Resize by dragging any of the 4 corners (touch-friendly, no visible button)
 local CORNER_SIZE = 28
 
 local cornerConfigs = {
@@ -1988,6 +1961,7 @@ local settingsList = new("ScrollingFrame", {
 new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }, settingsList)
 new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 10) }, settingsList)
 
+-- صف اللغة
 local langRow = new("Frame", { Size = UDim2.new(1, -12, 0, 52), BackgroundTransparency = 1, ZIndex = 6 }, settingsList)
 local langLabelLbl = new("TextLabel", {
     Text = T("langLabel"), Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = COLORS.subtext,
@@ -2027,6 +2001,7 @@ langENBtn.MouseButton1Click:Connect(function()
     applyLanguage()
 end)
 
+-- صف الشفافية
 local transRow = new("Frame", { Size = UDim2.new(1, -12, 0, 52), BackgroundTransparency = 1, ZIndex = 6 }, settingsList)
 local transLabelLbl = new("TextLabel", {
     Text = T("transLabel"), Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = COLORS.subtext,
@@ -2093,6 +2068,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
+-- صف الثيم
 local themeRow = new("Frame", { Size = UDim2.new(1, -12, 0, 60), BackgroundTransparency = 1, ZIndex = 6 }, settingsList)
 local themeLabelLbl = new("TextLabel", {
     Text = T("themeLabel"), Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = COLORS.subtext,
