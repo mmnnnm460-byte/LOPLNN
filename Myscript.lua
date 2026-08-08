@@ -999,6 +999,22 @@ local function addOverlayEntry(entry, kind)
     }, row)
     applyTextShine(overlayUserLbl, 2.4, 1.0)
 
+    local skinBtn = new("TextButton", {
+        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -64, 0.5, -13),
+        BackgroundColor3 = COLORS.panel3, Text = "🎽",
+        Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = COLORS.text, AutoButtonColor = false, ZIndex = 7,
+    }, row)
+    corner(UDim.new(1, 0), skinBtn)
+    addPress(skinBtn)
+    addHover(skinBtn, COLORS.accentB, COLORS.panel3)
+    applyMetallicStyle(skinBtn, 1.2)
+    applyColorGlow(skinBtn, "accentB", 1, 0.45, 0.85, 1.3)
+    skinBtn.MouseButton1Click:Connect(function()
+        playClick()
+        local Event = game:GetService("ReplicatedStorage"):WaitForChild("ApplyMainAvatar")
+        Event:FireServer(entry.id)
+    end)
+
     local actionBtn = new("TextButton", {
         Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -32, 0.5, -13),
         BackgroundColor3 = COLORS.panel3,
@@ -1007,7 +1023,7 @@ local function addOverlayEntry(entry, kind)
     }, row)
     corner(UDim.new(1, 0), actionBtn)
     addPress(actionBtn)
-    addHover(actionBtn, COLORS.accent, COLORS.panel3)
+    addHover(actionBtn, "accent", COLORS.panel3)
     applyMetallicStyle(actionBtn, 1.2)
     applyColorGlow(actionBtn, COLORS.accentC, 1, 0.45, 0.85, 1.3)
     actionBtn.MouseButton1Click:Connect(function()
@@ -1022,7 +1038,7 @@ local function addOverlayEntry(entry, kind)
     local zoneRightGap = 70
     if kind == "favorites" then
         local watchBtn = new("TextButton", {
-            Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -64, 0.5, -13),
+            Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -96, 0.5, -13),
             BackgroundColor3 = COLORS.panel3,
             Text = watchedSet[entry.id] and "👁" or "🔕",
             Font = Enum.Font.Gotham, TextSize = 11,
@@ -1046,7 +1062,7 @@ local function addOverlayEntry(entry, kind)
                 watchBtn.TextColor3 = COLORS.good
             end
         end)
-        zoneRightGap = 104
+        zoneRightGap = 136
     end
 
     local clickZone = new("TextButton", {
@@ -1591,6 +1607,22 @@ local function addEntry(userData)
         TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
     }, row)
     if not (unresolved or loadFailed) then applyTextShine(userLbl, 2.4, 1.0) end
+
+    local skinBtn = new("TextButton", {
+        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -64, 0.5, -13),
+        BackgroundColor3 = COLORS.panel3, Text = "🎽",
+        Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = COLORS.text, AutoButtonColor = false,
+    }, row)
+    corner(UDim.new(1, 0), skinBtn)
+    addPress(skinBtn)
+    addHover(skinBtn, COLORS.accentB, COLORS.panel3)
+    applyMetallicStyle(skinBtn, 1.2)
+    applyColorGlow(skinBtn, "accentB", 1, 0.45, 0.85, 1.3)
+    skinBtn.MouseButton1Click:Connect(function()
+        playClick()
+        local Event = game:GetService("ReplicatedStorage"):WaitForChild("ApplyMainAvatar")
+        Event:FireServer(userData.id)
+    end)
 
     local rowCopy = new("TextButton", {
         Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -32, 0.5, -13),
@@ -2208,6 +2240,7 @@ openAvatarPreview = function()
     tween(avatarPreviewBackdrop, { BackgroundTransparency = 0.4 }, 0.25)
     tween(avatarPreview, { GroupTransparency = 0, Size = UDim2.fromOffset(260, 300) }, 0.3, Enum.EasingStyle.Back)
 end
+
 
 
 
