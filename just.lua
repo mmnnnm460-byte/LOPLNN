@@ -25,6 +25,19 @@ local Theme = {
 	Accent     = Color3.fromRGB(100, 160, 255),
 }
 
+local TYPE_COLORS = {
+	Success = Color3.fromRGB(85, 210, 130),
+	Error   = Color3.fromRGB(255, 92, 92),
+	Warning = Theme.Warning,
+	Info    = Theme.Accent,
+}
+local TYPE_ICONS = {
+	Success = "circle-check",
+	Error   = "circle-xmark",
+	Warning = "triangle-exclamation",
+	Info    = "circle-info",
+}
+
 local BUILDER_ICONS = "rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"
 local FONT_TITLE = Font.new("rbxasset://fonts/families/Jura.json", Enum.FontWeight.Bold)
 local FONT_MAIN  = Font.new("rbxasset://fonts/families/Jura.json", Enum.FontWeight.Medium)
@@ -186,44 +199,71 @@ local NotifHolder = create("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -16, 1, -16),
-	Size = UDim2.new(0, 260, 1, -32),
+	Size = UDim2.new(0, 280, 1, -32),
 	Parent = ScreenGui,
 }, {
 	create("UIListLayout", {
-		Padding = UDim.new(0, 8),
+		Padding = UDim.new(0, 10),
 		HorizontalAlignment = Enum.HorizontalAlignment.Right,
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}),
 })
 
+----------------------------------------------------------------
+-- Notify (بادج ملون حسب النوع + شريط تقدم للمدة)
+----------------------------------------------------------------
 function Library:Notify(cfg)
 	cfg = cfg or {}
 	local dur = cfg.Duration or 4
+	local kind = cfg.Type or "Info"
+	local accentColor = TYPE_COLORS[kind] or Theme.Accent
+	local iconName = cfg.Icon or TYPE_ICONS[kind] or "bell"
 
 	local card = create("Frame", {
 		BackgroundColor3 = Theme.Secondary,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(0, 260, 0, 0),
+		Size = UDim2.new(0, 280, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		ClipsDescendants = true,
 		Parent = NotifHolder,
 	})
-	corner(card, 8)
-	local st = stroke(card, Theme.Stroke, 1)
+	corner(card, 10)
+	local st = stroke(card, accentColor, 1, 1)
+	local shadow = addShadow(card, 14, 1)
 
-	local accent = create("Frame", {
-		BackgroundColor3 = Theme.Accent, BackgroundTransparency = 1,
-		Size = UDim2.new(0, 3, 1, 0), BorderSizePixel = 0, Parent = card,
+	local inner = create("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Parent = card,
+	}, {
+		create("UIPadding", {
+			PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 14),
+			PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12),
+		}),
 	})
 
-	local content = create("Frame", {
+	local badge = create("Frame", {
+		BackgroundColor3 = accentColor, BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(30, 30), Position = UDim2.new(0, 0, 0, 0),
+		BorderSizePixel = 0, Parent = inner,
+	})
+	corner(badge, 8)
+	local badgeIcon = icon(iconName, 16, true, accentColor)
+	badgeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	badgeIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+	badgeIcon.TextTransparency = 1
+	badgeIcon.Parent = badge
+
+	local textWrap = create("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 14, 0, 0), Size = UDim2.new(1, -24, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y, Parent = card,
+		Position = UDim2.new(0, 42, 0, 0),
+		Size = UDim2.new(1, -42, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Parent = inner,
 	}, {
 		create("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder }),
-		create("UIPadding", { PaddingTop = UDim.new(0, 11), PaddingBottom = UDim.new(0, 11) }),
 	})
 
 	local titleLbl = create("TextLabel", {
@@ -231,7 +271,7 @@ function Library:Notify(cfg)
 		FontFace = FONT_TITLE, TextColor3 = Theme.Text, TextSize = 14,
 		TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true,
 		Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-		LayoutOrder = 1, Parent = content,
+		LayoutOrder = 1, Parent = textWrap,
 	})
 	local bodyLbl
 	if cfg.Content then
@@ -240,26 +280,57 @@ function Library:Notify(cfg)
 			FontFace = FONT_MAIN, TextColor3 = Theme.SubText, TextSize = 12,
 			TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true,
 			Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-			LayoutOrder = 2, Parent = content,
+			LayoutOrder = 2, Parent = textWrap,
 		})
 	end
 
-	card.Position = UDim2.new(0, 26, 0, 0)
-	tween(card, TI_S, { BackgroundTransparency = 0, Position = UDim2.new(0, 0, 0, 0) })
-	tween(st, TI_S, { Transparency = STROKE_T })
-	tween(accent, TI_S, { BackgroundTransparency = 0 })
+	local barTrack = create("Frame", {
+		BackgroundColor3 = Theme.Off, BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 1),
+		Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, 0),
+		BorderSizePixel = 0, Parent = card,
+	})
+	local barFill = create("Frame", {
+		BackgroundColor3 = accentColor, BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, 0), BorderSizePixel = 0, Parent = barTrack,
+	})
+
+	card.Position = UDim2.new(0, 30, 0, 0)
+	tween(card, TI_S, { BackgroundTransparency = 0.05, Position = UDim2.new(0, 0, 0, 0) })
+	tween(st, TI_S, { Transparency = 0.35 })
+	if shadow then tween(shadow, TI_S, { Transparency = 0.6 }) end
+	tween(badge, TI_S, { BackgroundTransparency = 0.85 })
+	tween(badgeIcon, TI_S, { TextTransparency = 0 })
 	tween(titleLbl, TI_S, { TextTransparency = 0 })
 	if bodyLbl then tween(bodyLbl, TI_S, { TextTransparency = 0 }) end
+	tween(barTrack, TI_S, { BackgroundTransparency = 0.85 })
+	tween(barFill, TI_S, { BackgroundTransparency = 0.15 })
+	tween(barFill, TweenInfo.new(dur, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 1, 0) })
 
-	task.delay(dur, function()
-		tween(card, TI, { BackgroundTransparency = 1, Position = UDim2.new(0, 26, 0, 0) })
+	local dismissed = false
+	local function dismiss()
+		if dismissed then return end
+		dismissed = true
+		tween(card, TI, { BackgroundTransparency = 1, Position = UDim2.new(0, 30, 0, 0) })
 		tween(st, TI, { Transparency = 1 })
-		tween(accent, TI, { BackgroundTransparency = 1 })
+		if shadow then tween(shadow, TI, { Transparency = 1 }) end
+		tween(badge, TI, { BackgroundTransparency = 1 })
+		tween(badgeIcon, TI, { TextTransparency = 1 })
 		tween(titleLbl, TI, { TextTransparency = 1 })
 		if bodyLbl then tween(bodyLbl, TI, { TextTransparency = 1 }) end
+		tween(barTrack, TI, { BackgroundTransparency = 1 })
+		tween(barFill, TI, { BackgroundTransparency = 1 })
 		task.wait(0.2)
 		card:Destroy()
-	end)
+	end
+
+	local clickBtn = create("TextButton", {
+		Text = "", AutoButtonColor = false, BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, 0), ZIndex = 10, Parent = card,
+	})
+	clickBtn.Activated:Connect(dismiss)
+
+	task.delay(dur, dismiss)
 end
 
 function Library:CreateWindow(cfg)
@@ -339,7 +410,7 @@ function Library:CreateWindow(cfg)
 		local copied = copyToClipboard(YT_LINK)
 		Library:Notify({
 			Title = "YouTube",
-			Content = copied and "Channel link copied to clipboard" or "Clipboard unavailable: " .. YT_LINK,
+			Content = copied and "تم نسخ رابط القناة" or ("النسخ غير متاح: " .. YT_LINK),
 			Duration = 3,
 		})
 	end)
@@ -348,10 +419,10 @@ function Library:CreateWindow(cfg)
 		local copied = copyToClipboard(DC_LINK)
 		local opened = openDiscordInvite(DC_CODE)
 		local msg
-		if opened and copied then msg = "Opening invite - link also copied"
-		elseif opened then msg = "Opening invite in Discord"
-		elseif copied then msg = "Invite link copied to clipboard"
-		else msg = "Clipboard unavailable: " .. DC_LINK end
+		if opened and copied then msg = "جاري فتح الدعوة - تم نسخ الرابط أيضًا"
+		elseif opened then msg = "جاري فتح الدعوة في Discord"
+		elseif copied then msg = "تم نسخ رابط الدعوة"
+		else msg = "النسخ غير متاح: " .. DC_LINK end
 		Library:Notify({ Title = "Discord", Content = msg, Duration = 3 })
 	end)
 
@@ -404,12 +475,14 @@ function Library:CreateWindow(cfg)
 	end)
 
 	----------------------------------------------------------------
+	-- إظهار/إخفاء الواجهة: أيقونة عائمة قابلة للسحب على يمين الشاشة
+	----------------------------------------------------------------
 	local hidden = false
 
 	local ToggleTab = create("Frame", {
 		Name = "VisibilityToggle",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 16, 0.5, 0),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -16, 0.5, 0),
 		Size = UDim2.fromOffset(34, 34),
 		BackgroundColor3 = Theme.Secondary,
 		BackgroundTransparency = 0.05,
