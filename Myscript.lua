@@ -1,4 +1,4 @@
---// PLAYERS PANEL (Friends/Followers + Applied Skins) — v4 //--
+--// PLAYERS PANEL (Friends/Followers + Applied Skins) — v5 (fixed) //--
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -187,6 +187,47 @@ local function batchResolveNames(ids, onProgress)
     return resolved
 end
 
+--// BATCH RESOLVE THUMBNAILS (real CDN URLs — more reliable than rbxthumb:// alone) //--
+local function batchResolveThumbnails(ids, onProgress)
+    local resolved = {}
+    local chunkSize = 100
+    local total = #ids
+
+    for i = 1, total, chunkSize do
+        local chunk = {}
+        for j = i, math.min(i + chunkSize - 1, total) do
+            table.insert(chunk, ids[j])
+        end
+        local idsParam = table.concat(chunk, ",")
+        local url = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=" .. idsParam .. "&size=150x150&format=Png&isCircular=false"
+
+        local attempts = 0
+        while attempts < 3 do
+            local ok, body = httpGet(url)
+            if ok then
+                local decoded = safeDecode(body)
+                if decoded and decoded.data then
+                    for _, t in ipairs(decoded.data) do
+                        if t.state == "Completed" and t.imageUrl then
+                            resolved[t.targetId] = t.imageUrl
+                        end
+                    end
+                end
+                break
+            elseif body == "RATE_LIMITED" then
+                attempts += 1
+                task.wait(1.5 * attempts)
+            else
+                break
+            end
+        end
+
+        if onProgress then onProgress(math.min(i + chunkSize - 1, total), total) end
+        task.wait(0.2)
+    end
+    return resolved
+end
+
 --// PERSISTENCE (Applied Skins list survives leaving/rejoining) //--
 local SAVE_FOLDER = "PlayerListUI"
 local SAVE_FILE = SAVE_FOLDER .. "/applied.json"
@@ -225,6 +266,12 @@ local appliedIds = {}
 local renderAppliedTab
 local renderSearchRows
 
+local PAGE_SIZE = 50
+local searchPageRef = {page = 1}
+local appliedPageRef = {page = 1}
+local applyCooldowns = {}
+local APPLY_COOLDOWN = 2.5
+
 --// APPLIED LIST HELPERS //--
 local function addApplied(entry)
     if appliedIds[entry.Id] then return end
@@ -245,6 +292,16 @@ end
 
 --// APPLY SKIN //--
 local function applySkin(entry)
+    local now = os.clock()
+    if applyCooldowns[entry.Id] and (now - applyCooldowns[entry.Id]) < APPLY_COOLDOWN then
+        if status then
+            status.Text = "استنى شوي — ما تضغط نفس اللاعب مرتين بسرعة"
+            status.TextColor3 = THEME.Error
+        end
+        return
+    end
+    applyCooldowns[entry.Id] = now
+
     local evt = ReplicatedStorage:FindFirstChild("ApplyMainAvatar")
     if not evt then
         if status then
@@ -253,8 +310,9 @@ local function applySkin(entry)
         end
         return
     end
+    local cleanName = entry.Name:gsub("^%s+", ""):gsub("%s+$", "")
     local ok = pcall(function()
-        evt:FireServer(entry.Name)
+        evt:FireServer(cleanName)
     end)
     if ok then
         if status then
@@ -719,7 +777,7 @@ local function makeRow(parentScroll, entry, index, buttons, showRemove)
     avatar.Size = UDim2.new(0, 46, 0, 46)
     avatar.Position = UDim2.new(0, 4, 0, 4)
     avatar.BackgroundColor3 = THEME.Bg
-    avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. entry.Id .. "&w=150&h=150"
+    avatar.Image = entry.Avatar or ("rbxthumb://type=AvatarHeadShot&id=" .. entry.Id .. "&w=150&h=150")
     avatar.Parent = row
     Instance.new("UICorner", avatar).CornerRadius = UDim.new(0, 8)
 
@@ -794,7 +852,7 @@ end
 
 local function clearScroll(scrollFrame)
     for _, child in ipairs(scrollFrame:GetChildren()) do
-        if child:IsA("Frame") then child:Destroy() end
+        if child:IsA("GuiObject") then child:Destroy() end
     end
 end
 
@@ -807,40 +865,55 @@ local function searchButtonsFor(entry)
     }
 end
 
-renderSearchRows = function(list)
-    clearScroll(scrollSearch)
-    local query = searchFilterBox.Text:lower()
-    local idx = 0
-    for _, entry in ipairs(list) do
-        local matches = query == "" or entry.Name:lower():find(query, 1, true) or entry.DisplayName:lower():find(query, 1, true)
-        if matches then
-            idx += 1
-            makeRow(scrollSearch, entry, idx, searchButtonsFor(entry), false)
-            if idx % 40 == 0 then task.wait() end
+local function renderPaginated(scrollFrame, filterBox, fullList, pageRef, showRemove, resetPage)
+    if resetPage then pageRef.page = 1 end
+    clearScroll(scrollFrame)
+    local query = filterBox.Text:lower()
+    local filtered = {}
+    for _, entry in ipairs(fullList) do
+        if query == "" or entry.Name:lower():find(query, 1, true) or entry.DisplayName:lower():find(query, 1, true) then
+            table.insert(filtered, entry)
         end
     end
+
+    local showCount = math.min(pageRef.page * PAGE_SIZE, #filtered)
+    for i = 1, showCount do
+        makeRow(scrollFrame, filtered[i], i, searchButtonsFor(filtered[i]), showRemove)
+        if i % 40 == 0 then task.wait() end
+    end
+
+    if showCount < #filtered then
+        local loadMoreBtn = Instance.new("TextButton")
+        loadMoreBtn.Size = UDim2.new(1, 0, 0, 34)
+        loadMoreBtn.LayoutOrder = showCount + 1
+        loadMoreBtn.BackgroundColor3 = THEME.Row
+        loadMoreBtn.Text = "تحميل المزيد (" .. (#filtered - showCount) .. " متبقي)"
+        loadMoreBtn.Font = Enum.Font.GothamBold
+        loadMoreBtn.TextSize = 12
+        loadMoreBtn.TextColor3 = THEME.Accent
+        loadMoreBtn.Parent = scrollFrame
+        Instance.new("UICorner", loadMoreBtn).CornerRadius = UDim.new(0, 8)
+        loadMoreBtn.MouseButton1Click:Connect(function()
+            pageRef.page += 1
+            renderPaginated(scrollFrame, filterBox, fullList, pageRef, showRemove, false)
+        end)
+    end
+end
+
+renderSearchRows = function(list)
+    renderPaginated(scrollSearch, searchFilterBox, list, searchPageRef, false, true)
 end
 
 renderAppliedTab = function()
-    clearScroll(scrollApplied)
-    local query = appliedFilterBox.Text:lower()
-    local idx = 0
-    for _, entry in ipairs(appliedList) do
-        local matches = query == "" or entry.Name:lower():find(query, 1, true) or entry.DisplayName:lower():find(query, 1, true)
-        if matches then
-            idx += 1
-            makeRow(scrollApplied, entry, idx, searchButtonsFor(entry), true)
-            if idx % 40 == 0 then task.wait() end
-        end
-    end
+    renderPaginated(scrollApplied, appliedFilterBox, appliedList, appliedPageRef, true, false)
 end
 
 searchFilterBox:GetPropertyChangedSignal("Text"):Connect(function()
-    renderSearchRows(currentResults)
+    renderPaginated(scrollSearch, searchFilterBox, currentResults, searchPageRef, false, true)
 end)
 
 appliedFilterBox:GetPropertyChangedSignal("Text"):Connect(function()
-    renderAppliedTab()
+    renderPaginated(scrollApplied, appliedFilterBox, appliedList, appliedPageRef, true, true)
 end)
 
 --// FETCH FLOW //--
@@ -896,6 +969,10 @@ fetchBtn.MouseButton1Click:Connect(function()
             status.Text = "استخراج الأسماء: " .. done .. " / " .. total
         end)
 
+        local thumbs = batchResolveThumbnails(ids, function(done, total)
+            status.Text = "جلب الصور: " .. done .. " / " .. total
+        end)
+
         local results = {}
         for _, id in ipairs(ids) do
             local info = names[id]
@@ -904,6 +981,7 @@ fetchBtn.MouseButton1Click:Connect(function()
                 Name = info and info.Name or ("id_" .. tostring(id)),
                 DisplayName = info and info.DisplayName or "?",
                 Verified = info and info.Verified or false,
+                Avatar = thumbs[id],
             })
         end
 
