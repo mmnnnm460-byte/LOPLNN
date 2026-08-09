@@ -404,14 +404,12 @@ function Library:CreateWindow(cfg)
 	end)
 
 	----------------------------------------------------------------
-	-- إظهار / إخفاء الواجهة (أيقونة عائمة بنفس شكل أزرار الواجهة)
-	----------------------------------------------------------------
 	local hidden = false
 
 	local ToggleTab = create("Frame", {
 		Name = "VisibilityToggle",
-		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.new(0, 16, 0, 16),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 16, 0.5, 0),
 		Size = UDim2.fromOffset(34, 34),
 		BackgroundColor3 = Theme.Secondary,
 		BackgroundTransparency = 0.05,
@@ -431,8 +429,6 @@ function Library:CreateWindow(cfg)
 	toggleIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
 	toggleIcon.Parent = ToggleBtn
 
-	makeDraggable(ToggleTab, ToggleTab)
-
 	local function setVisible(show)
 		hidden = not show
 		if show then
@@ -451,7 +447,39 @@ function Library:CreateWindow(cfg)
 		end
 	end
 
-	ToggleBtn.Activated:Connect(function() setVisible(hidden) end)
+	local dragging, dragInput, startPos, startFramePos, moved = false, nil, nil, nil, false
+
+	ToggleBtn.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			moved = false
+			startPos = inp.Position
+			startFramePos = ToggleTab.Position
+			inp.Changed:Connect(function()
+				if inp.UserInputState == Enum.UserInputState.End then
+					dragging = false
+					if not moved then setVisible(hidden) end
+				end
+			end)
+		end
+	end)
+
+	ToggleBtn.InputChanged:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+			dragInput = inp
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(inp)
+		if inp == dragInput and dragging then
+			local delta = inp.Position - startPos
+			if delta.Magnitude > 4 then moved = true end
+			ToggleTab.Position = UDim2.new(
+				startFramePos.X.Scale, startFramePos.X.Offset + delta.X,
+				startFramePos.Y.Scale, startFramePos.Y.Offset + delta.Y)
+		end
+	end)
+
 	ToggleBtn.MouseEnter:Connect(function() tween(toggleStroke, TI, { Transparency = 0 }) end)
 	ToggleBtn.MouseLeave:Connect(function() tween(toggleStroke, TI, { Transparency = 0.5 }) end)
 
@@ -462,8 +490,6 @@ function Library:CreateWindow(cfg)
 		end
 	end)
 
-	----------------------------------------------------------------
-	-- Tabs
 	----------------------------------------------------------------
 	function Window:CreateTab(tcfg)
 		tcfg = tcfg or {}
