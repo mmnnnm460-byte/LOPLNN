@@ -229,8 +229,16 @@ function Library:Notify(cfg)
 		Parent = NotifHolder,
 	})
 	corner(card, 10)
-	local st = stroke(card, accentColor, 1, 1)
+	local st = stroke(card, Theme.Stroke, 1, 1)
 	local shadow = addShadow(card, 14, 1)
+
+	-- شريط اللون: بار داخلي رفيع على اليسار (مو بوردر خارجي حول الكرت كله)
+	local accentBar = create("Frame", {
+		BackgroundColor3 = accentColor, BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 6, 0.5, 0),
+		Size = UDim2.new(0, 3, 1, -12), BorderSizePixel = 0, ZIndex = 2, Parent = card,
+	})
+	corner(accentBar, 2)
 
 	local inner = create("Frame", {
 		BackgroundTransparency = 1,
@@ -240,7 +248,7 @@ function Library:Notify(cfg)
 	}, {
 		create("UIPadding", {
 			PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 14),
-			PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12),
+			PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 12),
 		}),
 	})
 
@@ -297,7 +305,8 @@ function Library:Notify(cfg)
 
 	card.Position = UDim2.new(0, 30, 0, 0)
 	tween(card, TI_S, { BackgroundTransparency = 0.05, Position = UDim2.new(0, 0, 0, 0) })
-	tween(st, TI_S, { Transparency = 0.35 })
+	tween(st, TI_S, { Transparency = 0.7 })
+	tween(accentBar, TI_S, { BackgroundTransparency = 0 })
 	if shadow then tween(shadow, TI_S, { Transparency = 0.6 }) end
 	tween(badge, TI_S, { BackgroundTransparency = 0.85 })
 	tween(badgeIcon, TI_S, { TextTransparency = 0 })
@@ -313,6 +322,7 @@ function Library:Notify(cfg)
 		dismissed = true
 		tween(card, TI, { BackgroundTransparency = 1, Position = UDim2.new(0, 30, 0, 0) })
 		tween(st, TI, { Transparency = 1 })
+		tween(accentBar, TI, { BackgroundTransparency = 1 })
 		if shadow then tween(shadow, TI, { Transparency = 1 }) end
 		tween(badge, TI, { BackgroundTransparency = 1 })
 		tween(badgeIcon, TI, { TextTransparency = 1 })
@@ -339,48 +349,85 @@ function Library:CreateWindow(cfg)
 
 	local Window = { Tabs = {}, _current = nil }
 
+	-- أيقونة آمنة: تستخدم خط BuilderIcons لو الاسم معروف ومجرّب، وإلا نقطة عادية بدل رمز مكسور
+	-- (الأسماء تحت مأخوذة من مكتبتك الأصلية وتشتغل مؤكد؛ لو ضفت اسم جديد وطلع نقطة-تحت-نقطة يعني الاسم مو موجود بخط BuilderIcons عندك)
+	local SAFE_ICONS = {
+		["x"] = true, ["youtube"] = true, ["discord"] = true, ["eye"] = true, ["eye-off"] = true,
+		["circle-check"] = true, ["circle-xmark"] = true, ["circle-info"] = true,
+		["triangle-exclamation"] = true, ["chevron-down"] = true, ["chevron-right"] = true,
+		["check"] = true, ["bell"] = true,
+	}
+	local ICON_FONT = Font.new(BUILDER_ICONS, Enum.FontWeight.Regular)
+	local function iconFontFor(name)
+		if name and SAFE_ICONS[name] then
+			return ICON_FONT, name
+		end
+		return FONT_MAIN, "●"
+	end
+	local function safeIcon(name, size, color)
+		local font, text = iconFontFor(name)
+		return create("TextLabel", {
+			BackgroundTransparency = 1, Text = text, FontFace = font,
+			TextColor3 = color, TextScaled = true, Size = UDim2.fromOffset(size, size),
+		})
+	end
+	local function setIconLabel(lbl, name)
+		local font, text = iconFontFor(name)
+		lbl.FontFace = font
+		lbl.Text = text
+	end
+
 	----------------------------------------------------------------
-	-- البطاقة الرئيسية (بطاقة وحدة، بدون شريط علوي بتبويبات جانبية)
+	-- البطاقة الرئيسية (بطاقة وحدة أصغر، والتبويبات صارت شريط داخلي بالأسفل)
 	----------------------------------------------------------------
 	local BG = create("CanvasGroup", {
 		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.44, 0),
-		Size = UDim2.fromOffset(560, 430),
+		Position = UDim2.new(0.5, 0, 0.46, 0),
+		Size = UDim2.fromOffset(420, 340),
 		BackgroundColor3 = Theme.Background,
 		BackgroundTransparency = 0.02,
 		BorderSizePixel = 0,
 		Parent = ScreenGui,
 	})
 	corner(BG, 16)
-	stroke(BG, Theme.Stroke, 0.6)
-	addShadow(BG, 22, 0.5)
+	local bgStroke = stroke(BG, Theme.Stroke, 0.65)
+	create("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255)),
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(1, 1),
+		}),
+		Parent = bgStroke,
+	})
+	addShadow(BG, 24, 0.45)
 
-	-- رأس البطاقة: أيقونة + عنوان + عنوان فرعي يتغيّرون حسب التبويب النشط
+	-- رأس البطاقة: شريط منفصل بلون أفتح قليلاً (أيقونة + عنوان + عنوان فرعي يتغيّرون حسب التبويب)
 	local CardHeader = create("Frame", {
 		Name = "CardHeader",
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 52),
+		BackgroundColor3 = Theme.Secondary,
+		BackgroundTransparency = 0.35,
+		Size = UDim2.new(1, 0, 0, 46),
 		Parent = BG,
 	})
 
-	local CardIcon = icon(cfg.Icon or "layout-grid", 20, true, Theme.Text)
+	local CardIcon = safeIcon(cfg.Icon, 18, Theme.Text)
 	CardIcon.AnchorPoint = Vector2.new(0, 0.5)
-	CardIcon.Position = UDim2.new(0, 18, 0, 18)
+	CardIcon.Position = UDim2.new(0, 16, 0, 16)
 	CardIcon.Parent = CardHeader
 
 	local CardTitle = create("TextLabel", {
 		BackgroundTransparency = 1, Text = cfg.Title or "Tab Name",
-		FontFace = FONT_TITLE, TextColor3 = Theme.Text, TextSize = 18,
+		FontFace = FONT_TITLE, TextColor3 = Theme.Text, TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-		Position = UDim2.new(0, 46, 0, 8), Size = UDim2.new(1, -140, 0, 22),
+		Position = UDim2.new(0, 42, 0, 5), Size = UDim2.new(1, -132, 0, 20),
 		Parent = CardHeader,
 	})
 	local CardSubtitle = create("TextLabel", {
 		BackgroundTransparency = 1, Text = cfg.Subtitle or "", Visible = (cfg.Subtitle ~= nil and cfg.Subtitle ~= ""),
-		FontFace = FONT_MAIN, TextColor3 = Theme.SubText, TextSize = 12,
+		FontFace = FONT_MAIN, TextColor3 = Theme.SubText, TextSize = 11,
 		TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-		Position = UDim2.new(0, 46, 0, 28), Size = UDim2.new(1, -140, 0, 16),
+		Position = UDim2.new(0, 42, 0, 24), Size = UDim2.new(1, -132, 0, 14),
 		Parent = CardHeader,
 	})
 
@@ -389,11 +436,11 @@ function Library:CreateWindow(cfg)
 		local b = create("TextButton", {
 			Text = "", AutoButtonColor = false, BackgroundColor3 = Theme.Element,
 			BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, offsetX, 0, 18), Size = UDim2.fromOffset(26, 26),
+			Position = UDim2.new(1, offsetX, 0, 16), Size = UDim2.fromOffset(24, 24),
 			Parent = CardHeader,
 		})
-		corner(b, 8)
-		local ic = icon(iconName, 15, false, Theme.SubText)
+		corner(b, 7)
+		local ic = safeIcon(iconName, 14, Theme.SubText)
 		ic.AnchorPoint = Vector2.new(0.5, 0.5)
 		ic.Position = UDim2.new(0.5, 0, 0.5, 0)
 		ic.Parent = b
@@ -408,9 +455,9 @@ function Library:CreateWindow(cfg)
 		return b
 	end
 
-	local CloseBtn = ctrlBtn("x", -12, Color3.fromRGB(255, 90, 90))
-	local YtBtn    = ctrlBtn("youtube", -44, Color3.fromRGB(255, 60, 60))
-	local DcBtn    = ctrlBtn("discord", -76, Color3.fromRGB(88, 101, 242))
+	local CloseBtn = ctrlBtn("x", -10, Color3.fromRGB(255, 90, 90))
+	local YtBtn    = ctrlBtn("youtube", -40, Color3.fromRGB(255, 60, 60))
+	local DcBtn    = ctrlBtn("discord", -70, Color3.fromRGB(88, 101, 242))
 
 	local YT_LINK = "https://youtube.com/@vaehz"
 	local DC_LINK = "https://discord.gg/vaehz"
@@ -436,19 +483,6 @@ function Library:CreateWindow(cfg)
 		Library:Notify({ Title = "Discord", Content = msg, Duration = 3 })
 	end)
 
-	create("Frame", {
-		Name = "HeaderDivider", BackgroundColor3 = Theme.Stroke, BackgroundTransparency = STROKE_T,
-		BorderSizePixel = 0, Position = UDim2.new(0, 18, 0, 52), Size = UDim2.new(1, -36, 0, 1),
-		Parent = BG,
-	})
-
-	-- جسم البطاقة: كل تبويب عبارة عن صفحة قابلة للتمرير فوق بعضها
-	local CardBody = create("Frame", {
-		Name = "CardBody", BackgroundTransparency = 1,
-		Position = UDim2.new(0, 18, 0, 62), Size = UDim2.new(1, -36, 1, -80),
-		Parent = BG,
-	})
-
 	makeDraggable(BG, CardHeader)
 
 	CloseBtn.Activated:Connect(function()
@@ -457,40 +491,40 @@ function Library:CreateWindow(cfg)
 	end)
 
 	----------------------------------------------------------------
-	-- شريط الأيقونات العائم أسفل الشاشة (بديل التبويبات الجانبية)
+	-- شريط التبويبات: صار داخل نفس بطاقة المكتبة، ملتصق بالأسفل
 	----------------------------------------------------------------
-	local Dock = create("Frame", {
-		Name = "Dock",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -18),
-		Size = UDim2.new(0, 0, 0, 54),
-		AutomaticSize = Enum.AutomaticSize.X,
+	local BottomBar = create("Frame", {
+		Name = "BottomBar",
 		BackgroundColor3 = Theme.Secondary,
-		BackgroundTransparency = 0.05,
-		BorderSizePixel = 0,
-		Parent = ScreenGui,
+		BackgroundTransparency = 0.35,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 48),
+		Parent = BG,
 	})
-	corner(Dock, 18)
-	stroke(Dock, Theme.Stroke, 0.6)
-	addShadow(Dock, 16, 0.55)
 
 	local DockList = create("Frame", {
 		Name = "DockList",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(0, 0, 1, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Size = UDim2.new(0, 0, 0, 34),
 		AutomaticSize = Enum.AutomaticSize.X,
-		Parent = Dock,
+		Parent = BottomBar,
 	}, {
 		create("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, 6),
+			Padding = UDim.new(0, 8),
 			VerticalAlignment = Enum.VerticalAlignment.Center,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
-		create("UIPadding", {
-			PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8),
-			PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8),
-		}),
+	})
+
+	-- جسم البطاقة: كل تبويب عبارة عن صفحة قابلة للتمرير، محصورة بين الرأس وشريط التبويبات
+	local CardBody = create("Frame", {
+		Name = "CardBody", BackgroundTransparency = 1,
+		Position = UDim2.new(0, 16, 0, 54), Size = UDim2.new(1, -32, 1, -102),
+		Parent = BG,
 	})
 
 	----------------------------------------------------------------
@@ -525,20 +559,16 @@ function Library:CreateWindow(cfg)
 		hidden = not show
 		if show then
 			BG.Visible = true
-			Dock.Visible = true
 			BG.GroupTransparency = 1
-			Dock.BackgroundTransparency = 1
 			tween(BG, TI_S, { GroupTransparency = 0 })
-			tween(Dock, TI_S, { BackgroundTransparency = 0.05 })
 			toggleIcon.Text = "eye"
 			tween(ToggleTab, TI, { BackgroundColor3 = Theme.Secondary })
 		else
 			tween(BG, TI, { GroupTransparency = 1 })
-			tween(Dock, TI, { BackgroundTransparency = 1 })
 			toggleIcon.Text = "eye-off"
 			tween(ToggleTab, TI, { BackgroundColor3 = Theme.Accent })
 			task.delay(0.16, function()
-				if hidden then BG.Visible = false; Dock.Visible = false end
+				if hidden then BG.Visible = false end
 			end)
 		end
 	end
@@ -594,11 +624,11 @@ function Library:CreateWindow(cfg)
 		-- أيقونة التبويب في الدوك السفلي
 		local dockBtn = create("TextButton", {
 			Text = "", AutoButtonColor = false, BackgroundColor3 = Theme.Element,
-			BackgroundTransparency = 1, Size = UDim2.fromOffset(38, 38),
+			BackgroundTransparency = 1, Size = UDim2.fromOffset(34, 34),
 			Parent = DockList,
 		})
-		corner(dockBtn, 12)
-		local dockIcon = icon(tcfg.Icon or "circle", 17, false, Theme.SubText)
+		corner(dockBtn, 10)
+		local dockIcon = safeIcon(tcfg.Icon, 16, Theme.SubText)
 		dockIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 		dockIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
 		dockIcon.Parent = dockBtn
@@ -637,7 +667,7 @@ function Library:CreateWindow(cfg)
 			tween(dockBtn, TI, { BackgroundTransparency = 0 })
 			tween(dockIcon, TI, { TextColor3 = Color3.new(1, 1, 1) })
 
-			CardIcon.Text = tcfg.Icon or "circle"
+			setIconLabel(CardIcon, tcfg.Icon)
 			CardTitle.Text = tcfg.Name or "Tab"
 			CardSubtitle.Text = tcfg.Subtitle or ""
 			CardSubtitle.Visible = (tcfg.Subtitle ~= nil and tcfg.Subtitle ~= "")
@@ -1127,7 +1157,7 @@ function Library:CreateWindow(cfg)
 	end
 
 	Window.Instance = BG
-	Window.Dock = Dock
+	Window.Dock = BottomBar
 	return Window
 end
 
