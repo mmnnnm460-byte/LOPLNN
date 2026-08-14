@@ -1,1042 +1,1426 @@
---// PLAYERS PANEL (Friends/Followers + Applied Skins) — v5 (fixed) //--
-local HttpService = game:GetService("HttpService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- StatsCard : بينق مطابق للرسمي + FPS + مؤقت جلسة + ساعة 12h + تبويبات (لاعب/لاعبين/سيرفر) + احترافي
+-- + معلومات إضافية لكل لاعب + زر Follow + قائمة لاعبين كاملة الحجم
+-- ضعه كـ LocalScript داخل StarterGui
 
---// THEME //--
-local THEME = {
-    Bg        = Color3.fromRGB(18, 17, 23),
-    Panel     = Color3.fromRGB(26, 24, 33),
-    Header    = Color3.fromRGB(22, 20, 28),
-    Row       = Color3.fromRGB(32, 29, 40),
-    RowAlt    = Color3.fromRGB(36, 33, 45),
-    Accent    = Color3.fromRGB(150, 80, 240),
-    AccentDim = Color3.fromRGB(95, 60, 165),
-    Text      = Color3.fromRGB(235, 232, 245),
-    SubText   = Color3.fromRGB(150, 145, 170),
-    Error     = Color3.fromRGB(235, 90, 90),
-    Success   = Color3.fromRGB(90, 210, 140),
-    Verified  = Color3.fromRGB(70, 150, 235),
-}
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
+local MarketplaceService = game:GetService("MarketplaceService")
+local TeleportService = game:GetService("TeleportService")
+local Workspace = game:GetService("Workspace")
 
---// HTTP ABSTRACTION //--
-local reqFunc = (syn and syn.request) or (http and http.request) or http_request or request or (fluxus and fluxus.request)
+local player = Players.LocalPlayer
 
-local function httpGet(url)
-    if reqFunc then
-        local ok, res = pcall(reqFunc, {Url = url, Method = "GET"})
-        if ok and res then
-            if res.StatusCode == 200 then return true, res.Body end
-            if res.StatusCode == 429 then return false, "RATE_LIMITED" end
-            return false, "HTTP_" .. tostring(res.StatusCode)
-        end
-        return false, "REQUEST_FAILED"
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "StatsCard"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- ===== الكرت الرئيسي =====
+local CARD_WIDTH = 256
+local CARD_HEIGHT = 300
+local BASE_CARD_HEIGHT = CARD_HEIGHT
+local MAX_CARD_HEIGHT = 400 -- ✅ تم تقليله من 560 عشان ما يطلع طويل جدًا عند فتح تبويب PLAYERS
+
+local card = Instance.new("Frame")
+card.Name = "Card"
+card.Size = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT)
+card.Position = UDim2.fromScale(0.02, 0.1)
+card.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+card.BorderSizePixel = 0
+card.ClipsDescendants = true
+card.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 16)
+corner.Parent = card
+
+local cardShadow = Instance.new("UIShadow")
+cardShadow.Color = Color3.fromRGB(0, 0, 0)
+cardShadow.Transparency = 0.55
+cardShadow.BlurRadius = UDim.new(0, 18)
+cardShadow.Offset = UDim2.fromOffset(0, 6)
+cardShadow.Parent = card
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 1.25
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Parent = card
+
+local strokeGradient = Instance.new("UIGradient")
+strokeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(120,120,135)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,255,255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(120,120,135)),
+})
+strokeGradient.Parent = stroke
+
+task.spawn(function()
+    local rot = 0
+    while card.Parent do
+        rot = (rot + 1) % 360
+        strokeGradient.Rotation = rot
+        task.wait(0.03)
+    end
+end)
+
+local bgGradient = Instance.new("UIGradient")
+bgGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(26,26,31)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(14,14,17)),
+})
+bgGradient.Rotation = 90
+bgGradient.Parent = card
+
+-- ===== شريط التبويبات (3 تبويبات) =====
+local TAB_TOP = 10
+local TAB_HEIGHT = 32
+local CONTENT_TOP = 52
+local TAB_CONTENT_HEIGHT = 248
+
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.fromOffset(CARD_WIDTH - 20, TAB_HEIGHT)
+tabBar.Position = UDim2.fromOffset(10, TAB_TOP)
+tabBar.BackgroundColor3 = Color3.fromRGB(14, 14, 17)
+tabBar.BorderSizePixel = 0
+tabBar.Parent = card
+
+local tabBarCorner = Instance.new("UICorner")
+tabBarCorner.CornerRadius = UDim.new(0, 10)
+tabBarCorner.Parent = tabBar
+
+local TAB_PAD = 3
+local TAB_BTN_W = 74
+
+local indicator = Instance.new("Frame")
+indicator.Size = UDim2.fromOffset(TAB_BTN_W, TAB_HEIGHT - TAB_PAD*2)
+indicator.Position = UDim2.fromOffset(TAB_PAD, TAB_PAD)
+indicator.BackgroundColor3 = Color3.fromRGB(40, 40, 47)
+indicator.BorderSizePixel = 0
+indicator.Parent = tabBar
+
+local indicatorCorner = Instance.new("UICorner")
+indicatorCorner.CornerRadius = UDim.new(0, 8)
+indicatorCorner.Parent = indicator
+
+local indicatorStroke = Instance.new("UIStroke")
+indicatorStroke.Thickness = 1
+indicatorStroke.Color = Color3.fromRGB(255,255,255)
+indicatorStroke.Transparency = 0.85
+indicatorStroke.Parent = indicator
+
+local function createTabButton(text, xPos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.fromOffset(TAB_BTN_W, TAB_HEIGHT)
+    btn.Position = UDim2.fromOffset(xPos, 0)
+    btn.BackgroundTransparency = 1
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(140,140,150)
+    btn.ZIndex = 2
+    btn.Parent = tabBar
+    return btn
+end
+
+local tabBtnPlayer  = createTabButton("PLAYER",  TAB_PAD)
+tabBtnPlayer.TextColor3 = Color3.fromRGB(255,255,255)
+local tabBtnPlayers = createTabButton("PLAYERS", TAB_PAD*2 + TAB_BTN_W)
+local tabBtnServer  = createTabButton("SERVER",  TAB_PAD*3 + TAB_BTN_W*2)
+
+-- ===== حاويات التبويبات =====
+local PlayerTab = Instance.new("Frame")
+PlayerTab.Name = "PlayerTab"
+PlayerTab.Size = UDim2.new(1, 0, 0, TAB_CONTENT_HEIGHT)
+PlayerTab.Position = UDim2.fromOffset(0, CONTENT_TOP)
+PlayerTab.BackgroundTransparency = 1
+PlayerTab.Parent = card
+
+local PlayersTab = Instance.new("Frame")
+PlayersTab.Name = "PlayersTab"
+PlayersTab.Size = UDim2.new(1, 0, 0, 600)
+PlayersTab.Position = UDim2.fromOffset(CARD_WIDTH, CONTENT_TOP)
+PlayersTab.BackgroundTransparency = 1
+PlayersTab.Parent = card
+
+local ServerTab = Instance.new("Frame")
+ServerTab.Name = "ServerTab"
+ServerTab.Size = UDim2.new(1, 0, 0, TAB_CONTENT_HEIGHT)
+ServerTab.Position = UDim2.fromOffset(CARD_WIDTH * 2, CONTENT_TOP)
+ServerTab.BackgroundTransparency = 1
+ServerTab.Parent = card
+
+-- ===== قسم اللاعب (داخل PlayerTab) =====
+local avatar = Instance.new("ImageLabel")
+avatar.Name = "Avatar"
+avatar.Size = UDim2.fromOffset(44, 44)
+avatar.Position = UDim2.fromOffset(12, 12)
+avatar.BackgroundColor3 = Color3.fromRGB(36,36,42)
+avatar.Parent = PlayerTab
+
+local avatarCorner = Instance.new("UICorner")
+avatarCorner.CornerRadius = UDim.new(1, 0)
+avatarCorner.Parent = avatar
+
+local avatarStroke = Instance.new("UIStroke")
+avatarStroke.Thickness = 1.25
+avatarStroke.Color = Color3.fromRGB(255,255,255)
+avatarStroke.Transparency = 0.55
+avatarStroke.Parent = avatar
+
+avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=150&h=150"
+
+local onlineDot = Instance.new("Frame")
+onlineDot.Size = UDim2.fromOffset(11, 11)
+onlineDot.Position = UDim2.fromOffset(33, 33)
+onlineDot.BackgroundColor3 = Color3.fromRGB(90, 220, 130)
+onlineDot.BorderSizePixel = 0
+onlineDot.ZIndex = 2
+onlineDot.Parent = avatar
+
+local onlineDotCorner = Instance.new("UICorner")
+onlineDotCorner.CornerRadius = UDim.new(1, 0)
+onlineDotCorner.Parent = onlineDot
+
+local onlineDotStroke = Instance.new("UIStroke")
+onlineDotStroke.Thickness = 2
+onlineDotStroke.Color = Color3.fromRGB(20,20,24)
+onlineDotStroke.Parent = onlineDot
+
+local displayName = Instance.new("TextLabel")
+displayName.Name = "DisplayName"
+displayName.BackgroundTransparency = 1
+displayName.Position = UDim2.fromOffset(64, 13)
+displayName.Size = UDim2.fromOffset(180, 18)
+displayName.Font = Enum.Font.GothamBold
+displayName.TextSize = 14
+displayName.TextColor3 = Color3.fromRGB(255,255,255)
+displayName.TextXAlignment = Enum.TextXAlignment.Left
+displayName.TextTruncate = Enum.TextTruncate.AtEnd
+displayName.Text = player.DisplayName
+displayName.Parent = PlayerTab
+
+local username = Instance.new("TextLabel")
+username.Name = "Username"
+username.BackgroundTransparency = 1
+username.Position = UDim2.fromOffset(64, 32)
+username.Size = UDim2.fromOffset(180, 15)
+username.Font = Enum.Font.Gotham
+username.TextSize = 11
+username.TextColor3 = Color3.fromRGB(145,145,155)
+username.TextXAlignment = Enum.TextXAlignment.Left
+username.TextTruncate = Enum.TextTruncate.AtEnd
+username.Text = "@" .. player.Name
+username.Parent = PlayerTab
+
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(1, -24, 0, 1)
+divider.Position = UDim2.fromOffset(12, 66)
+divider.BackgroundColor3 = Color3.fromRGB(255,255,255)
+divider.BorderSizePixel = 0
+divider.Parent = PlayerTab
+
+local dividerGradient = Instance.new("UIGradient")
+dividerGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.5, 0.88),
+    NumberSequenceKeypoint.new(1, 1),
+})
+dividerGradient.Parent = divider
+
+-- ===== دالة صندوق إحصائية (تُستخدم بالتبويبات) =====
+local function createStatBox(parent, xPos, yPos, width, height, label, accentColor)
+    local box = Instance.new("Frame")
+    box.Size = UDim2.fromOffset(width, height)
+    box.Position = UDim2.fromOffset(xPos, yPos)
+    box.BackgroundColor3 = Color3.fromRGB(27,27,32)
+    box.Parent = parent
+
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 10)
+    boxCorner.Parent = box
+
+    local boxStroke = Instance.new("UIStroke")
+    boxStroke.Thickness = 1
+    boxStroke.Color = accentColor
+    boxStroke.Transparency = 0.82
+    boxStroke.Parent = box
+
+    local boxShadow = Instance.new("UIShadow")
+    boxShadow.Color = Color3.fromRGB(0,0,0)
+    boxShadow.Transparency = 0.75
+    boxShadow.BlurRadius = UDim.new(0, 8)
+    boxShadow.Offset = UDim2.fromOffset(0, 2)
+    boxShadow.Parent = box
+
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromOffset(5, 5)
+    dot.Position = UDim2.fromOffset(9, 9)
+    dot.BackgroundColor3 = accentColor
+    dot.BorderSizePixel = 0
+    dot.Parent = box
+
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = dot
+
+    local labelText = Instance.new("TextLabel")
+    labelText.BackgroundTransparency = 1
+    labelText.Size = UDim2.new(1, -20, 0, 14)
+    labelText.Position = UDim2.fromOffset(18, 7)
+    labelText.Font = Enum.Font.GothamMedium
+    labelText.TextSize = 10
+    labelText.TextColor3 = Color3.fromRGB(150,150,160)
+    labelText.TextXAlignment = Enum.TextXAlignment.Left
+    labelText.Text = label
+    labelText.Parent = box
+
+    return box, dot, boxStroke
+end
+
+-- ===== دالة زر إجراء =====
+local function createActionButton(parent, yPos, text, accentColor)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -24, 0, 40)
+    btn.Position = UDim2.fromOffset(12, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(27,27,32)
+    btn.AutoButtonColor = false
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.TextColor3 = accentColor
+    btn.Text = text
+    btn.Parent = parent
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 10)
+    btnCorner.Parent = btn
+
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Thickness = 1
+    btnStroke.Color = accentColor
+    btnStroke.Transparency = 0.75
+    btnStroke.Parent = btn
+
+    local btnShadow = Instance.new("UIShadow")
+    btnShadow.Color = Color3.fromRGB(0,0,0)
+    btnShadow.Transparency = 0.75
+    btnShadow.BlurRadius = UDim.new(0, 8)
+    btnShadow.Offset = UDim2.fromOffset(0, 2)
+    btnShadow.Parent = btn
+
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(34,34,40)}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(27,27,32)}):Play()
+    end)
+
+    return btn
+end
+
+-- ===== صف أول: PING + FPS =====
+local pingBox, pingDot, pingStroke = createStatBox(PlayerTab, 12, 76, 112, 54, "PING", Color3.fromRGB(100,220,130))
+
+local pingValue = Instance.new("TextLabel")
+pingValue.Name = "Value"
+pingValue.BackgroundTransparency = 1
+pingValue.Size = UDim2.fromOffset(90, 20)
+pingValue.Position = UDim2.fromOffset(9, 24)
+pingValue.Font = Enum.Font.GothamBold
+pingValue.TextSize = 17
+pingValue.TextColor3 = Color3.fromRGB(255,255,255)
+pingValue.TextXAlignment = Enum.TextXAlignment.Left
+pingValue.Text = "--"
+pingValue.Parent = pingBox
+
+local pingAvg = Instance.new("TextLabel")
+pingAvg.BackgroundTransparency = 1
+pingAvg.Size = UDim2.fromOffset(90, 12)
+pingAvg.Position = UDim2.fromOffset(9, 42)
+pingAvg.Font = Enum.Font.Gotham
+pingAvg.TextSize = 10
+pingAvg.TextColor3 = Color3.fromRGB(115,115,125)
+pingAvg.TextXAlignment = Enum.TextXAlignment.Left
+pingAvg.Text = "avg: --"
+pingAvg.Parent = pingBox
+
+local fpsBox, fpsDot, fpsStroke = createStatBox(PlayerTab, 130, 76, 114, 54, "FPS", Color3.fromRGB(100,220,130))
+
+local fpsValue = Instance.new("TextLabel")
+fpsValue.Name = "Value"
+fpsValue.BackgroundTransparency = 1
+fpsValue.Size = UDim2.new(1, -18, 0, 22)
+fpsValue.Position = UDim2.fromOffset(9, 24)
+fpsValue.Font = Enum.Font.GothamBold
+fpsValue.TextSize = 19
+fpsValue.TextColor3 = Color3.fromRGB(255,255,255)
+fpsValue.TextXAlignment = Enum.TextXAlignment.Left
+fpsValue.Text = "--"
+fpsValue.Parent = fpsBox
+
+-- ===== صف ثاني: مؤقت الجلسة + الساعة =====
+local timerBox = createStatBox(PlayerTab, 12, 138, 112, 50, "SESSION", Color3.fromRGB(120,160,255))
+
+local timerValue = Instance.new("TextLabel")
+timerValue.Name = "Value"
+timerValue.BackgroundTransparency = 1
+timerValue.Size = UDim2.new(1, -18, 0, 20)
+timerValue.Position = UDim2.fromOffset(9, 24)
+timerValue.Font = Enum.Font.GothamBold
+timerValue.TextSize = 15
+timerValue.TextColor3 = Color3.fromRGB(255,255,255)
+timerValue.TextXAlignment = Enum.TextXAlignment.Left
+timerValue.Text = "00:00:00"
+timerValue.Parent = timerBox
+
+local clockBox = createStatBox(PlayerTab, 130, 138, 114, 50, "CLOCK", Color3.fromRGB(200,150,255))
+
+local clockValue = Instance.new("TextLabel")
+clockValue.Name = "Value"
+clockValue.BackgroundTransparency = 1
+clockValue.Size = UDim2.new(1, -18, 0, 20)
+clockValue.Position = UDim2.fromOffset(9, 24)
+clockValue.Font = Enum.Font.GothamBold
+clockValue.TextSize = 15
+clockValue.TextColor3 = Color3.fromRGB(255,255,255)
+clockValue.TextXAlignment = Enum.TextXAlignment.Left
+clockValue.Text = "--:--:--"
+clockValue.Parent = clockBox
+
+-- ===== قسم السيرفر (داخل ServerTab) =====
+local gameBox = createStatBox(ServerTab, 12, 12, 232, 46, "GAME", Color3.fromRGB(255,190,90))
+
+local gameNameValue = Instance.new("TextLabel")
+gameNameValue.Name = "Value"
+gameNameValue.BackgroundTransparency = 1
+gameNameValue.Size = UDim2.new(1, -18, 0, 18)
+gameNameValue.Position = UDim2.fromOffset(9, 22)
+gameNameValue.Font = Enum.Font.GothamBold
+gameNameValue.TextSize = 13
+gameNameValue.TextColor3 = Color3.fromRGB(255,255,255)
+gameNameValue.TextXAlignment = Enum.TextXAlignment.Left
+gameNameValue.TextTruncate = Enum.TextTruncate.AtEnd
+gameNameValue.Text = "..."
+gameNameValue.Parent = gameBox
+
+task.spawn(function()
+    local ok, info = pcall(function()
+        return MarketplaceService:GetProductInfo(game.PlaceId)
+    end)
+    if ok and info and info.Name then
+        gameNameValue.Text = info.Name
     else
-        local ok, body = pcall(game.HttpGet, game, url)
-        if ok then return true, body end
-        return false, "HTTPGET_FAILED"
+        gameNameValue.Text = "Unknown"
     end
+end)
+
+local playersBox, playersDot, playersStroke = createStatBox(ServerTab, 12, 66, 112, 54, "PLAYERS", Color3.fromRGB(100,220,130))
+
+local playersValue = Instance.new("TextLabel")
+playersValue.Name = "Value"
+playersValue.BackgroundTransparency = 1
+playersValue.Size = UDim2.fromOffset(90, 20)
+playersValue.Position = UDim2.fromOffset(9, 24)
+playersValue.Font = Enum.Font.GothamBold
+playersValue.TextSize = 17
+playersValue.TextColor3 = Color3.fromRGB(255,255,255)
+playersValue.TextXAlignment = Enum.TextXAlignment.Left
+playersValue.Text = "--/--"
+playersValue.Parent = playersBox
+
+local function updatePlayerCount()
+    playersValue.Text = tostring(#Players:GetPlayers()) .. "/" .. tostring(Players.MaxPlayers)
 end
-
-local function httpPost(url, bodyTbl)
-    if not reqFunc then return false, "POST_UNSUPPORTED" end
-    local ok, res = pcall(reqFunc, {
-        Url = url,
-        Method = "POST",
-        Headers = {["Content-Type"] = "application/json"},
-        Body = HttpService:JSONEncode(bodyTbl),
-    })
-    if ok and res then
-        if res.StatusCode == 200 then return true, res.Body end
-        if res.StatusCode == 429 then return false, "RATE_LIMITED" end
-        return false, "HTTP_" .. tostring(res.StatusCode)
-    end
-    return false, "REQUEST_FAILED"
-end
-
-local function safeDecode(body)
-    local ok, decoded = pcall(HttpService.JSONDecode, HttpService, body)
-    if ok then return decoded end
-    return nil
-end
-
-local function escapeRich(text)
-    text = tostring(text or "")
-    text = text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub("\"", "&quot;")
-    return text
-end
-
---// RESOLVE USERNAME -> USERID //--
-local function resolveUserId(input)
-    input = input:gsub("^%s+", ""):gsub("%s+$", "")
-    if tonumber(input) then return true, tonumber(input) end
-
-    local ok, body = httpPost("https://users.roblox.com/v1/usernames/users", {
-        usernames = {input},
-        excludeBannedUsers = false,
-    })
-    if not ok then return false, body end
-
-    local decoded = safeDecode(body)
-    if decoded and decoded.data and decoded.data[1] then
-        return true, decoded.data[1].id
-    end
-    return false, "USER_NOT_FOUND"
-end
-
---// FETCH RAW ID LISTS //--
-local function isValidId(id)
-    return type(id) == "number" and id >= 1
-end
-
-local function getFriendIds(userId)
-    local ids = {}
-    local ok, body = httpGet("https://friends.roblox.com/v1/users/" .. userId .. "/friends")
-    if ok then
-        local decoded = safeDecode(body)
-        if decoded and decoded.data then
-            for _, e in ipairs(decoded.data) do
-                if isValidId(e.id) then table.insert(ids, e.id) end
-            end
-        end
-    end
-    return ids
-end
-
-local function getFollowerIds(userId, target, onProgress)
-    local ids = {}
-    local cursor = ""
-    local base = "https://friends.roblox.com/v1/users/" .. userId .. "/followers?limit=100&sortOrder=Desc"
-    local retries = 0
-
-    while #ids < target do
-        local url = base .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
-        local ok, body = httpGet(url)
-
-        if not ok then
-            if body == "RATE_LIMITED" and retries < 5 then
-                retries += 1
-                task.wait(1.5 * retries)
-            else
-                break
-            end
-        else
-            retries = 0
-            local decoded = safeDecode(body)
-            if not decoded or not decoded.data then break end
-
-            for _, e in ipairs(decoded.data) do
-                if isValidId(e.id) then
-                    table.insert(ids, e.id)
-                    if #ids >= target then break end
-                end
-            end
-            if onProgress then onProgress(#ids) end
-
-            if decoded.nextPageCursor and decoded.nextPageCursor ~= "" and #ids < target then
-                cursor = decoded.nextPageCursor
-                task.wait(0.3)
-            else
-                break
-            end
-        end
-    end
-    return ids
-end
-
---// BATCH RESOLVE NAMES (+ verified badge) //--
-local function batchResolveNames(ids, onProgress)
-    local resolved = {}
-    local chunkSize = 100
-    local total = #ids
-
-    for i = 1, total, chunkSize do
-        local chunk = {}
-        for j = i, math.min(i + chunkSize - 1, total) do
-            table.insert(chunk, ids[j])
-        end
-
-        local attempts = 0
-        while attempts < 4 do
-            local ok, body = httpPost("https://users.roblox.com/v1/users", {
-                userIds = chunk,
-                excludeBannedUsers = false,
-            })
-            if ok then
-                local decoded = safeDecode(body)
-                if decoded and decoded.data then
-                    for _, u in ipairs(decoded.data) do
-                        resolved[u.id] = {
-                            Name = (u.name and u.name ~= "") and u.name or ("id_" .. tostring(u.id)),
-                            DisplayName = (u.displayName and u.displayName ~= "") and u.displayName or "?",
-                            Verified = u.hasVerifiedBadge == true,
-                        }
-                    end
-                end
-                break
-            elseif body == "RATE_LIMITED" then
-                attempts += 1
-                task.wait(1.5 * attempts)
-            else
-                break
-            end
-        end
-
-        if onProgress then onProgress(math.min(i + chunkSize - 1, total), total) end
-        task.wait(0.25)
-    end
-    return resolved
-end
-
---// BATCH RESOLVE THUMBNAILS (real CDN URLs — more reliable than rbxthumb:// alone) //--
-local function batchResolveThumbnails(ids, onProgress)
-    local resolved = {}
-    local chunkSize = 100
-    local total = #ids
-
-    for i = 1, total, chunkSize do
-        local chunk = {}
-        for j = i, math.min(i + chunkSize - 1, total) do
-            table.insert(chunk, ids[j])
-        end
-        local idsParam = table.concat(chunk, ",")
-        local url = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=" .. idsParam .. "&size=150x150&format=Png&isCircular=false"
-
-        local attempts = 0
-        while attempts < 3 do
-            local ok, body = httpGet(url)
-            if ok then
-                local decoded = safeDecode(body)
-                if decoded and decoded.data then
-                    for _, t in ipairs(decoded.data) do
-                        if t.state == "Completed" and t.imageUrl then
-                            resolved[t.targetId] = t.imageUrl
-                        end
-                    end
-                end
-                break
-            elseif body == "RATE_LIMITED" then
-                attempts += 1
-                task.wait(1.5 * attempts)
-            else
-                break
-            end
-        end
-
-        if onProgress then onProgress(math.min(i + chunkSize - 1, total), total) end
-        task.wait(0.2)
-    end
-    return resolved
-end
-
---// PERSISTENCE (Applied Skins list survives leaving/rejoining) //--
-local SAVE_FOLDER = "PlayerListUI"
-local SAVE_FILE = SAVE_FOLDER .. "/applied.json"
-local canPersist = (writefile ~= nil) and (readfile ~= nil) and (isfile ~= nil)
-
-local function ensureFolder()
-    if makefolder then pcall(makefolder, SAVE_FOLDER) end
-end
-
-local function loadAppliedFile()
-    if not canPersist then return {} end
-    local ok, exists = pcall(isfile, SAVE_FILE)
-    if ok and exists then
-        local okRead, content = pcall(readfile, SAVE_FILE)
-        if okRead then
-            local decoded = safeDecode(content)
-            if decoded then return decoded end
-        end
-    end
-    return {}
-end
-
-local function saveAppliedFile(list)
-    if not canPersist then return end
-    ensureFolder()
-    pcall(writefile, SAVE_FILE, HttpService:JSONEncode(list))
-end
-
---// STATE (forward declared) //--
-local status
-local scrollSearch, scrollApplied
-local searchFilterBox, appliedFilterBox
-local currentResults = {}
-local appliedList = {}
-local appliedIds = {}
-local renderAppliedTab
-local renderSearchRows
-
-local PAGE_SIZE = 50
-local searchPageRef = {page = 1}
-local appliedPageRef = {page = 1}
-local applyCooldowns = {}
-local APPLY_COOLDOWN = 2.5
-
---// APPLIED LIST HELPERS //--
-local function addApplied(entry)
-    if appliedIds[entry.Id] then return end
-    appliedIds[entry.Id] = true
-    table.insert(appliedList, 1, entry)
-    saveAppliedFile(appliedList)
-    if renderAppliedTab then renderAppliedTab() end
-end
-
-local function removeApplied(id)
-    appliedIds[id] = nil
-    for idx, e in ipairs(appliedList) do
-        if e.Id == id then table.remove(appliedList, idx) break end
-    end
-    saveAppliedFile(appliedList)
-    if renderAppliedTab then renderAppliedTab() end
-end
-
---// APPLY SKIN //--
-local function applySkin(entry)
-    local now = os.clock()
-    if applyCooldowns[entry.Id] and (now - applyCooldowns[entry.Id]) < APPLY_COOLDOWN then
-        if status then
-            status.Text = "استنى شوي — ما تضغط نفس اللاعب مرتين بسرعة"
-            status.TextColor3 = THEME.Error
-        end
-        return
-    end
-    applyCooldowns[entry.Id] = now
-
-    local evt = ReplicatedStorage:FindFirstChild("ApplyMainAvatar")
-    if not evt then
-        if status then
-            status.Text = "ما لقيت ApplyMainAvatar بهالقيم"
-            status.TextColor3 = THEME.Error
-        end
-        return
-    end
-    local cleanName = entry.Name:gsub("^%s+", ""):gsub("%s+$", "")
-    local ok = pcall(function()
-        evt:FireServer(cleanName)
-    end)
-    if ok then
-        if status then
-            status.Text = "تم تطبيق سكن: " .. entry.Name
-            status.TextColor3 = THEME.Success
-        end
-        addApplied(entry)
-    else
-        if status then
-            status.Text = "فشل تطبيق السكن"
-            status.TextColor3 = THEME.Error
-        end
-    end
-end
-
---// UI BUILD //--
-local gui = Instance.new("ScreenGui")
-gui.Name = "PlayersPanelUI"
-gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent = game:GetService("CoreGui")
-
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 420, 0, 600)
-main.Position = UDim2.new(0.5, -210, 0.5, -300)
-main.BackgroundColor3 = THEME.Panel
-main.BorderSizePixel = 0
-main.Parent = gui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
-
-local stroke = Instance.new("UIStroke", main)
-stroke.Color = THEME.Accent
-stroke.Thickness = 1.5
-stroke.Transparency = 0.35
-
---// HEADER //--
-local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 56)
-header.BackgroundColor3 = THEME.Header
-header.BorderSizePixel = 0
-header.Parent = main
-Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
-
-local headerFix = Instance.new("Frame") -- covers bottom rounded corners of header
-headerFix.Size = UDim2.new(1, 0, 0, 12)
-headerFix.Position = UDim2.new(0, 0, 1, -12)
-headerFix.BackgroundColor3 = THEME.Header
-headerFix.BorderSizePixel = 0
-headerFix.ZIndex = 0
-headerFix.Parent = header
-
-local titleLbl = Instance.new("TextLabel")
-titleLbl.Size = UDim2.new(1, -50, 0, 20)
-titleLbl.Position = UDim2.new(0, 14, 0, 8)
-titleLbl.BackgroundTransparency = 1
-titleLbl.Text = "Players"
-titleLbl.Font = Enum.Font.GothamBold
-titleLbl.TextSize = 16
-titleLbl.TextColor3 = THEME.Text
-titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-titleLbl.Parent = header
-
-local subtitleLbl = Instance.new("TextLabel")
-subtitleLbl.Size = UDim2.new(1, -50, 0, 16)
-subtitleLbl.Position = UDim2.new(0, 14, 0, 28)
-subtitleLbl.BackgroundTransparency = 1
-subtitleLbl.Text = "Friends & Followers Tool"
-subtitleLbl.Font = Enum.Font.Gotham
-subtitleLbl.TextSize = 11
-subtitleLbl.TextColor3 = THEME.SubText
-subtitleLbl.TextXAlignment = Enum.TextXAlignment.Left
-subtitleLbl.Parent = header
-
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0, 13)
-closeBtn.BackgroundColor3 = THEME.Row
-closeBtn.Text = "X"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 13
-closeBtn.TextColor3 = THEME.Text
-closeBtn.Parent = header
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
-closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
-
--- draggable via header
-do
-    local dragging, dragStart, startPos
-    header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = main.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-    header.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
---// TOP TABS: Search / Applied //--
-local tabsFrame = Instance.new("Frame")
-tabsFrame.Size = UDim2.new(1, -24, 0, 32)
-tabsFrame.Position = UDim2.new(0, 12, 0, 64)
-tabsFrame.BackgroundColor3 = THEME.Row
-tabsFrame.Parent = main
-Instance.new("UICorner", tabsFrame).CornerRadius = UDim.new(0, 8)
-
-local searchTabBtn = Instance.new("TextButton")
-searchTabBtn.Size = UDim2.new(0.5, 0, 1, 0)
-searchTabBtn.BackgroundColor3 = THEME.Accent
-searchTabBtn.Text = "Search"
-searchTabBtn.Font = Enum.Font.GothamBold
-searchTabBtn.TextSize = 12
-searchTabBtn.TextColor3 = THEME.Text
-searchTabBtn.Parent = tabsFrame
-Instance.new("UICorner", searchTabBtn).CornerRadius = UDim.new(0, 8)
-
-local appliedTabBtn = Instance.new("TextButton")
-appliedTabBtn.Size = UDim2.new(0.5, 0, 1, 0)
-appliedTabBtn.Position = UDim2.new(0.5, 0, 0, 0)
-appliedTabBtn.BackgroundColor3 = THEME.Row
-appliedTabBtn.Text = "Applied Skins"
-appliedTabBtn.Font = Enum.Font.GothamBold
-appliedTabBtn.TextSize = 12
-appliedTabBtn.TextColor3 = THEME.SubText
-appliedTabBtn.Parent = tabsFrame
-Instance.new("UICorner", appliedTabBtn).CornerRadius = UDim.new(0, 8)
-
---// CONTENT AREA //--
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, -24, 1, -112)
-contentFrame.Position = UDim2.new(0, 12, 0, 104)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = main
-
---// SEARCH PANEL //--
-local searchPanel = Instance.new("Frame")
-searchPanel.Size = UDim2.new(1, 0, 1, 0)
-searchPanel.BackgroundTransparency = 1
-searchPanel.Visible = true
-searchPanel.Parent = contentFrame
-
-local inputBox = Instance.new("TextBox")
-inputBox.Size = UDim2.new(1, 0, 0, 32)
-inputBox.Position = UDim2.new(0, 0, 0, 0)
-inputBox.BackgroundColor3 = THEME.Row
-inputBox.PlaceholderText = "Username or UserId"
-inputBox.Text = ""
-inputBox.Font = Enum.Font.Gotham
-inputBox.TextSize = 13
-inputBox.TextColor3 = THEME.Text
-inputBox.PlaceholderColor3 = THEME.SubText
-inputBox.ClearTextOnFocus = false
-inputBox.Parent = searchPanel
-Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 6)
-
-local mode = "Followers"
-local toggleFrame = Instance.new("Frame")
-toggleFrame.Size = UDim2.new(1, 0, 0, 30)
-toggleFrame.Position = UDim2.new(0, 0, 0, 40)
-toggleFrame.BackgroundColor3 = THEME.Row
-toggleFrame.Parent = searchPanel
-Instance.new("UICorner", toggleFrame).CornerRadius = UDim.new(0, 6)
-
-local friendsBtn = Instance.new("TextButton")
-friendsBtn.Size = UDim2.new(0.5, 0, 1, 0)
-friendsBtn.BackgroundColor3 = THEME.Row
-friendsBtn.Text = "Friends"
-friendsBtn.Font = Enum.Font.GothamBold
-friendsBtn.TextSize = 12
-friendsBtn.TextColor3 = THEME.SubText
-friendsBtn.Parent = toggleFrame
-Instance.new("UICorner", friendsBtn).CornerRadius = UDim.new(0, 6)
-
-local followersBtn = Instance.new("TextButton")
-followersBtn.Size = UDim2.new(0.5, 0, 1, 0)
-followersBtn.Position = UDim2.new(0.5, 0, 0, 0)
-followersBtn.BackgroundColor3 = THEME.Accent
-followersBtn.Text = "Followers"
-followersBtn.Font = Enum.Font.GothamBold
-followersBtn.TextSize = 12
-followersBtn.TextColor3 = THEME.Text
-followersBtn.Parent = toggleFrame
-Instance.new("UICorner", followersBtn).CornerRadius = UDim.new(0, 6)
-
-local function setMode(m)
-    mode = m
-    if m == "Friends" then
-        friendsBtn.BackgroundColor3 = THEME.Accent
-        friendsBtn.TextColor3 = THEME.Text
-        followersBtn.BackgroundColor3 = THEME.Row
-        followersBtn.TextColor3 = THEME.SubText
-    else
-        followersBtn.BackgroundColor3 = THEME.Accent
-        followersBtn.TextColor3 = THEME.Text
-        friendsBtn.BackgroundColor3 = THEME.Row
-        friendsBtn.TextColor3 = THEME.SubText
-    end
-end
-friendsBtn.MouseButton1Click:Connect(function() setMode("Friends") end)
-followersBtn.MouseButton1Click:Connect(function() setMode("Followers") end)
-
-local targetBox = Instance.new("TextBox")
-targetBox.Size = UDim2.new(0, 100, 0, 30)
-targetBox.Position = UDim2.new(0, 0, 0, 78)
-targetBox.BackgroundColor3 = THEME.Row
-targetBox.PlaceholderText = "Target"
-targetBox.Text = "1000"
-targetBox.Font = Enum.Font.Gotham
-targetBox.TextSize = 12
-targetBox.TextColor3 = THEME.Text
-targetBox.Parent = searchPanel
-Instance.new("UICorner", targetBox).CornerRadius = UDim.new(0, 6)
-
-local fetchBtn = Instance.new("TextButton")
-fetchBtn.Size = UDim2.new(1, -112, 0, 30)
-fetchBtn.Position = UDim2.new(0, 112, 0, 78)
-fetchBtn.BackgroundColor3 = THEME.Accent
-fetchBtn.Text = "Fetch"
-fetchBtn.Font = Enum.Font.GothamBold
-fetchBtn.TextSize = 13
-fetchBtn.TextColor3 = THEME.Text
-fetchBtn.Parent = searchPanel
-Instance.new("UICorner", fetchBtn).CornerRadius = UDim.new(0, 6)
-
-status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, 0, 0, 16)
-status.Position = UDim2.new(0, 0, 0, 112)
-status.BackgroundTransparency = 1
-status.Text = ""
-status.Font = Enum.Font.Gotham
-status.TextSize = 11
-status.TextColor3 = THEME.SubText
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.Parent = searchPanel
-
-local copyAllBtn = Instance.new("TextButton")
-copyAllBtn.Size = UDim2.new(1, 0, 0, 24)
-copyAllBtn.Position = UDim2.new(0, 0, 0, 132)
-copyAllBtn.BackgroundColor3 = THEME.Row
-copyAllBtn.Text = "Copy All Results"
-copyAllBtn.Font = Enum.Font.Gotham
-copyAllBtn.TextSize = 11
-copyAllBtn.TextColor3 = THEME.SubText
-copyAllBtn.Parent = searchPanel
-Instance.new("UICorner", copyAllBtn).CornerRadius = UDim.new(0, 6)
-
-searchFilterBox = Instance.new("TextBox")
-searchFilterBox.Size = UDim2.new(1, 0, 0, 30)
-searchFilterBox.Position = UDim2.new(0, 0, 0, 162)
-searchFilterBox.BackgroundColor3 = THEME.Row
-searchFilterBox.PlaceholderText = "Search players..."
-searchFilterBox.Text = ""
-searchFilterBox.Font = Enum.Font.Gotham
-searchFilterBox.TextSize = 12
-searchFilterBox.TextColor3 = THEME.Text
-searchFilterBox.PlaceholderColor3 = THEME.SubText
-searchFilterBox.ClearTextOnFocus = false
-searchFilterBox.Parent = searchPanel
-Instance.new("UICorner", searchFilterBox).CornerRadius = UDim.new(0, 6)
-
-scrollSearch = Instance.new("ScrollingFrame")
-scrollSearch.Size = UDim2.new(1, 0, 1, -198)
-scrollSearch.Position = UDim2.new(0, 0, 0, 198)
-scrollSearch.BackgroundColor3 = THEME.Bg
-scrollSearch.BorderSizePixel = 0
-scrollSearch.ScrollBarThickness = 4
-scrollSearch.ScrollBarImageColor3 = THEME.Accent
-scrollSearch.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollSearch.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scrollSearch.Parent = searchPanel
-Instance.new("UICorner", scrollSearch).CornerRadius = UDim.new(0, 8)
-
-local searchListLayout = Instance.new("UIListLayout", scrollSearch)
-searchListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-searchListLayout.Padding = UDim.new(0, 3)
-
---// APPLIED PANEL //--
-local appliedPanel = Instance.new("Frame")
-appliedPanel.Size = UDim2.new(1, 0, 1, 0)
-appliedPanel.BackgroundTransparency = 1
-appliedPanel.Visible = false
-appliedPanel.Parent = contentFrame
-
-appliedFilterBox = Instance.new("TextBox")
-appliedFilterBox.Size = UDim2.new(1, 0, 0, 30)
-appliedFilterBox.Position = UDim2.new(0, 0, 0, 0)
-appliedFilterBox.BackgroundColor3 = THEME.Row
-appliedFilterBox.PlaceholderText = "Search applied players..."
-appliedFilterBox.Text = ""
-appliedFilterBox.Font = Enum.Font.Gotham
-appliedFilterBox.TextSize = 12
-appliedFilterBox.TextColor3 = THEME.Text
-appliedFilterBox.PlaceholderColor3 = THEME.SubText
-appliedFilterBox.ClearTextOnFocus = false
-appliedFilterBox.Parent = appliedPanel
-Instance.new("UICorner", appliedFilterBox).CornerRadius = UDim.new(0, 6)
-
-local clearAllBtn = Instance.new("TextButton")
-clearAllBtn.Size = UDim2.new(0, 120, 0, 26)
-clearAllBtn.Position = UDim2.new(0, 0, 0, 36)
-clearAllBtn.BackgroundColor3 = THEME.Row
-clearAllBtn.Text = "Clear All"
-clearAllBtn.Font = Enum.Font.Gotham
-clearAllBtn.TextSize = 11
-clearAllBtn.TextColor3 = THEME.Error
-clearAllBtn.Parent = appliedPanel
-Instance.new("UICorner", clearAllBtn).CornerRadius = UDim.new(0, 6)
-
-local copyAllAppliedBtn = Instance.new("TextButton")
-copyAllAppliedBtn.Size = UDim2.new(1, -128, 0, 26)
-copyAllAppliedBtn.Position = UDim2.new(0, 128, 0, 36)
-copyAllAppliedBtn.BackgroundColor3 = THEME.Row
-copyAllAppliedBtn.Text = "Copy All Applied"
-copyAllAppliedBtn.Font = Enum.Font.Gotham
-copyAllAppliedBtn.TextSize = 11
-copyAllAppliedBtn.TextColor3 = THEME.SubText
-copyAllAppliedBtn.Parent = appliedPanel
-Instance.new("UICorner", copyAllAppliedBtn).CornerRadius = UDim.new(0, 6)
-
-scrollApplied = Instance.new("ScrollingFrame")
-scrollApplied.Size = UDim2.new(1, 0, 1, -70)
-scrollApplied.Position = UDim2.new(0, 0, 0, 70)
-scrollApplied.BackgroundColor3 = THEME.Bg
-scrollApplied.BorderSizePixel = 0
-scrollApplied.ScrollBarThickness = 4
-scrollApplied.ScrollBarImageColor3 = THEME.Accent
-scrollApplied.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollApplied.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scrollApplied.Parent = appliedPanel
-Instance.new("UICorner", scrollApplied).CornerRadius = UDim.new(0, 8)
-
-local appliedListLayout = Instance.new("UIListLayout", scrollApplied)
-appliedListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-appliedListLayout.Padding = UDim.new(0, 3)
-
---// TAB SWITCH LOGIC //--
-local function setTab(tab)
-    if tab == "Search" then
-        searchPanel.Visible = true
-        appliedPanel.Visible = false
-        searchTabBtn.BackgroundColor3 = THEME.Accent
-        searchTabBtn.TextColor3 = THEME.Text
-        appliedTabBtn.BackgroundColor3 = THEME.Row
-        appliedTabBtn.TextColor3 = THEME.SubText
-    else
-        searchPanel.Visible = false
-        appliedPanel.Visible = true
-        appliedTabBtn.BackgroundColor3 = THEME.Accent
-        appliedTabBtn.TextColor3 = THEME.Text
-        searchTabBtn.BackgroundColor3 = THEME.Row
-        searchTabBtn.TextColor3 = THEME.SubText
-    end
-end
-searchTabBtn.MouseButton1Click:Connect(function() setTab("Search") end)
-appliedTabBtn.MouseButton1Click:Connect(function() setTab("Applied") end)
-
---// RESIZE HANDLE //--
-local resizeHandle = Instance.new("TextButton")
-resizeHandle.Size = UDim2.new(0, 18, 0, 18)
-resizeHandle.Position = UDim2.new(1, -18, 1, -18)
-resizeHandle.BackgroundColor3 = THEME.Accent
-resizeHandle.Text = ""
-resizeHandle.AutoButtonColor = false
-resizeHandle.Parent = main
-Instance.new("UICorner", resizeHandle).CornerRadius = UDim.new(0, 4)
-
-do
-    local resizing, dragStart, startSize
-    resizeHandle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            resizing = true
-            dragStart = input.Position
-            startSize = main.Size
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then resizing = false end
-            end)
-        end
-    end)
-    resizeHandle.InputChanged:Connect(function(input)
-        if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            local newX = math.max(360, startSize.X.Offset + delta.X)
-            local newY = math.max(440, startSize.Y.Offset + delta.Y)
-            main.Size = UDim2.new(0, newX, 0, newY)
-        end
-    end)
-end
-
---// FLOATING TOGGLE ICON (square, rounded, black border, no text — shows/hides panel) //--
-local toggleIcon = Instance.new("TextButton")
-toggleIcon.Name = "PlayersPanelToggle"
-toggleIcon.Size = UDim2.new(0, 46, 0, 46)
-toggleIcon.Position = UDim2.new(0, 20, 0, 140)
-toggleIcon.BackgroundColor3 = THEME.Accent
-toggleIcon.AutoButtonColor = false
-toggleIcon.Text = ""
-toggleIcon.ZIndex = 10
-toggleIcon.Parent = gui
-Instance.new("UICorner", toggleIcon).CornerRadius = UDim.new(0, 10)
-
-local toggleStroke = Instance.new("UIStroke", toggleIcon)
-toggleStroke.Color = Color3.fromRGB(0, 0, 0)
-toggleStroke.Thickness = 2
-toggleStroke.Transparency = 0
-
-do
-    local dragging, dragStart, startPos, moved
-    toggleIcon.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            moved = false
-            dragStart = input.Position
-            startPos = toggleIcon.Position
-        end
-    end)
-    toggleIcon.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            if math.abs(delta.X) > 4 or math.abs(delta.Y) > 4 then moved = true end
-            toggleIcon.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    toggleIcon.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-            if not moved then
-                main.Visible = not main.Visible
-            end
-        end
-    end)
-end
-
---// SHARED ROW RENDERER //--
-local function copyText(text)
-    if setclipboard then
-        pcall(setclipboard, text)
-        status.Text = "تم النسخ: " .. text
-        status.TextColor3 = THEME.SubText
-    else
-        print(text)
-    end
-end
-
-local function makeRow(parentScroll, entry, index, buttons, showRemove)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 92)
-    row.BackgroundColor3 = (index % 2 == 0) and THEME.RowAlt or THEME.Row
-    row.BorderSizePixel = 0
-    row.LayoutOrder = index
-    row.Parent = parentScroll
-    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
-
-    local avatar = Instance.new("ImageLabel")
-    avatar.Size = UDim2.new(0, 46, 0, 46)
-    avatar.Position = UDim2.new(0, 4, 0, 4)
-    avatar.BackgroundColor3 = THEME.Bg
-    avatar.Image = entry.Avatar or ("rbxthumb://type=AvatarHeadShot&id=" .. entry.Id .. "&w=150&h=150")
-    avatar.Parent = row
-    Instance.new("UICorner", avatar).CornerRadius = UDim.new(0, 8)
-
-    local nameLbl = Instance.new("TextLabel")
-    nameLbl.Size = UDim2.new(1, showRemove and -82 or -58, 0, 18)
-    nameLbl.Position = UDim2.new(0, 56, 0, 2)
-    nameLbl.BackgroundTransparency = 1
-    nameLbl.RichText = true
-    nameLbl.Text = escapeRich(entry.DisplayName) .. (entry.Verified and '  <font color="#4696EB" size="13">✔</font>' or "")
-    nameLbl.Font = Enum.Font.GothamBold
-    nameLbl.TextSize = 13
-    nameLbl.TextColor3 = THEME.Text
-    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
-    nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
-    nameLbl.Parent = row
-
-    local userLbl = Instance.new("TextLabel")
-    userLbl.Size = UDim2.new(1, showRemove and -82 or -58, 0, 14)
-    userLbl.Position = UDim2.new(0, 56, 0, 20)
-    userLbl.BackgroundTransparency = 1
-    userLbl.Text = "@" .. entry.Name
-    userLbl.Font = Enum.Font.Gotham
-    userLbl.TextSize = 11
-    userLbl.TextColor3 = THEME.SubText
-    userLbl.TextXAlignment = Enum.TextXAlignment.Left
-    userLbl.TextTruncate = Enum.TextTruncate.AtEnd
-    userLbl.Parent = row
-
-    if showRemove then
-        local removeBtn = Instance.new("TextButton")
-        removeBtn.Size = UDim2.new(0, 20, 0, 20)
-        removeBtn.Position = UDim2.new(1, -24, 0, 4)
-        removeBtn.BackgroundColor3 = THEME.Error
-        removeBtn.Text = "✕"
-        removeBtn.Font = Enum.Font.GothamBold
-        removeBtn.TextSize = 11
-        removeBtn.TextColor3 = THEME.Text
-        removeBtn.Parent = row
-        Instance.new("UICorner", removeBtn).CornerRadius = UDim.new(0, 5)
-        removeBtn.MouseButton1Click:Connect(function()
-            removeApplied(entry.Id)
+updatePlayerCount()
+Players.PlayerAdded:Connect(updatePlayerCount)
+Players.PlayerRemoving:Connect(updatePlayerCount)
+
+local uptimeBox = createStatBox(ServerTab, 130, 66, 114, 54, "UPTIME", Color3.fromRGB(120,160,255))
+
+local uptimeValue = Instance.new("TextLabel")
+uptimeValue.Name = "Value"
+uptimeValue.BackgroundTransparency = 1
+uptimeValue.Size = UDim2.new(1, -18, 0, 20)
+uptimeValue.Position = UDim2.fromOffset(9, 24)
+uptimeValue.Font = Enum.Font.GothamBold
+uptimeValue.TextSize = 15
+uptimeValue.TextColor3 = Color3.fromRGB(255,255,255)
+uptimeValue.TextXAlignment = Enum.TextXAlignment.Left
+uptimeValue.Text = "00:00:00"
+uptimeValue.Parent = uptimeBox
+
+task.spawn(function()
+    local startServerTime = Workspace:GetServerTimeNow()
+    while card.Parent do
+        local ok, t = pcall(function()
+            return Workspace:GetServerTimeNow()
         end)
+        if ok then
+            local elapsed = math.floor(t - startServerTime)
+            local h = math.floor(elapsed / 3600)
+            local m = math.floor((elapsed % 3600) / 60)
+            local s = elapsed % 60
+            uptimeValue.Text = string.format("%02d:%02d:%02d", h, m, s)
+        end
+        task.wait(1)
     end
+end)
 
-    local btnRow = Instance.new("Frame")
-    btnRow.Size = UDim2.new(1, -62, 0, 48)
-    btnRow.Position = UDim2.new(0, 56, 0, 38)
-    btnRow.BackgroundTransparency = 1
-    btnRow.Parent = row
+local rejoinBtn = createActionButton(ServerTab, 128, "REJOIN SERVER", Color3.fromRGB(120,160,255))
+local hopBtn = createActionButton(ServerTab, 176, "SERVER HOP", Color3.fromRGB(255,160,90))
 
-    local btnGrid = Instance.new("UIGridLayout", btnRow)
-    btnGrid.CellSize = UDim2.new(0.5, -3, 0, 22)
-    btnGrid.CellPadding = UDim2.new(0, 4, 0, 4)
-    btnGrid.SortOrder = Enum.SortOrder.LayoutOrder
-    btnGrid.FillDirection = Enum.FillDirection.Horizontal
-
-    for order, cfg in ipairs(buttons) do
-        local b = Instance.new("TextButton")
-        b.BackgroundColor3 = cfg.color or THEME.AccentDim
-        b.Text = cfg.text
-        b.Font = Enum.Font.Gotham
-        b.TextSize = 11
-        b.TextColor3 = THEME.Text
-        b.LayoutOrder = order
-        b.Parent = btnRow
-        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
-        b.MouseButton1Click:Connect(cfg.onClick)
-    end
-
-    return row
+local function bindAction(btn, callback)
+    local busy = false
+    btn.MouseButton1Click:Connect(function()
+        if busy then return end
+        busy = true
+        local originalText = btn.Text
+        btn.Text = "..."
+        local ok = pcall(callback)
+        if not ok then
+            btn.Text = "FAILED"
+            task.delay(1.5, function()
+                btn.Text = originalText
+                busy = false
+            end)
+        else
+            task.delay(0.6, function()
+                btn.Text = originalText
+                busy = false
+            end)
+        end
+    end)
 end
 
-local function clearScroll(scrollFrame)
-    for _, child in ipairs(scrollFrame:GetChildren()) do
-        if child:IsA("GuiObject") then child:Destroy() end
+bindAction(rejoinBtn, function()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+end)
+
+bindAction(hopBtn, function()
+    TeleportService:Teleport(game.PlaceId, player)
+end)
+
+-- ============================================================
+-- ===== قسم تبويب PLAYERS: قائمة لاعبين حية =====
+-- ============================================================
+
+local playerRows = {}
+local rowCounter = 0
+local selectedPlayer = nil
+
+-- --- إعدادات صف اللاعب ---
+local ROW_HEIGHT = 56
+local AV_SIZE = 32
+
+-- --- تخطيط تبويب PLAYERS (يتمدد ليعرض القائمة كاملة) ---
+local PLAYERS_LIST_TOP = 8
+local PLAYERS_GAP = 8
+local TELEPORT_BTN_HEIGHT = 34
+local CONTROLS_BAR_HEIGHT = 68
+local BOTTOM_PADDING = 10
+local MIN_LIST_HEIGHT = 90
+
+-- --- نظام المشاهدة (Spectate) + المتابعة (Follow) ---
+local Camera = Workspace.CurrentCamera
+local spectating = false
+local spectateCharConn = nil
+local following = false
+local followConn = nil
+local FOLLOW_OFFSET = Vector3.new(0, 5, 12) -- خلف وأعلى اللاعب المستهدف
+local spectateToggle -- forward declare
+local followToggle   -- forward declare
+local spectateLabel  -- forward declare
+local followLabel    -- forward declare
+
+local function formatDuration(totalSeconds)
+    totalSeconds = math.max(0, math.floor(totalSeconds))
+    local h = math.floor(totalSeconds / 3600)
+    local m = math.floor((totalSeconds % 3600) / 60)
+    local s = totalSeconds % 60
+    if h > 0 then
+        return string.format("%dh %02dm", h, m)
+    end
+    return string.format("%dm %02ds", m, s)
+end
+
+local function applySpectateSubject(target)
+    Camera = Workspace.CurrentCamera
+    if not Camera or not target or not target.Character then return end
+    local hum = target.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        Camera.CameraSubject = hum
     end
 end
 
-local function searchButtonsFor(entry)
+local function refreshControlsLabels()
+    if spectateLabel then
+        if not selectedPlayer then
+            spectateLabel.Text = "SELECT A PLAYER"
+        elseif spectating then
+            spectateLabel.Text = "SPECTATING • " .. selectedPlayer.Name
+        else
+            spectateLabel.Text = "WATCH • " .. (selectedPlayer and selectedPlayer.Name or "")
+        end
+    end
+    if followLabel then
+        if not selectedPlayer then
+            followLabel.Text = "SELECT A PLAYER"
+        elseif following then
+            followLabel.Text = "FOLLOWING • " .. selectedPlayer.Name
+        else
+            followLabel.Text = "FOLLOW • " .. (selectedPlayer and selectedPlayer.Name or "")
+        end
+    end
+end
+
+local function stopFollow(animated)
+    if followConn then
+        followConn:Disconnect()
+        followConn = nil
+    end
+    if following then
+        following = false
+        Camera = Workspace.CurrentCamera
+        if Camera then
+            Camera.CameraType = Enum.CameraType.Custom
+            if player.Character then
+                local myHum = player.Character:FindFirstChildOfClass("Humanoid")
+                if myHum then
+                    Camera.CameraSubject = myHum
+                end
+            end
+        end
+    end
+    if followToggle then followToggle.Set(false, animated ~= false) end
+    refreshControlsLabels()
+end
+
+local function stopSpectate(animated)
+    if spectateCharConn then
+        spectateCharConn:Disconnect()
+        spectateCharConn = nil
+    end
+    if spectating then
+        spectating = false
+        Camera = Workspace.CurrentCamera
+        if Camera then
+            Camera.CameraType = Enum.CameraType.Custom
+            if player.Character then
+                local myHum = player.Character:FindFirstChildOfClass("Humanoid")
+                if myHum then
+                    Camera.CameraSubject = myHum
+                end
+            end
+        end
+    end
+    if spectateToggle then spectateToggle.Set(false, animated ~= false) end
+    refreshControlsLabels()
+end
+
+local function startFollow()
+    if not selectedPlayer or not selectedPlayer.Parent then
+        if followToggle then followToggle.Set(false, false) end
+        return
+    end
+    -- المتابعة (كاميرا مقفولة) تلغي المشاهدة الناعمة تلقائيًا لتفادي تضارب الكاميرا
+    if spectating then stopSpectate(false) end
+
+    Camera = Workspace.CurrentCamera
+    Camera.CameraType = Enum.CameraType.Scriptable
+    following = true
+
+    if followConn then followConn:Disconnect() end
+    followConn = RunService.RenderStepped:Connect(function()
+        if not selectedPlayer or not selectedPlayer.Character then return end
+        local root = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root or not Camera then return end
+        local behind = root.CFrame * CFrame.new(0, FOLLOW_OFFSET.Y, FOLLOW_OFFSET.Z)
+        Camera.CFrame = CFrame.new(behind.Position, root.Position + Vector3.new(0, 1.5, 0))
+    end)
+
+    refreshControlsLabels()
+end
+
+local function startSpectate()
+    if not selectedPlayer or not selectedPlayer.Parent then
+        if spectateToggle then spectateToggle.Set(false, false) end
+        return
+    end
+    if following then stopFollow(false) end
+
+    Camera = Workspace.CurrentCamera
+    Camera.CameraType = Enum.CameraType.Custom
+    applySpectateSubject(selectedPlayer)
+    spectating = true
+
+    if spectateCharConn then spectateCharConn:Disconnect() end
+    spectateCharConn = selectedPlayer.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        applySpectateSubject(selectedPlayer)
+    end)
+
+    refreshControlsLabels()
+end
+
+task.spawn(function()
+    while card.Parent do
+        if spectating and selectedPlayer and selectedPlayer.Parent then
+            applySpectateSubject(selectedPlayer)
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- --- زر Toggle احترافي (سويتش) ---
+local function createToggleSwitch(parent, pos, onChanged)
+    local state = false
+
+    local track = Instance.new("TextButton")
+    track.Text = ""
+    track.AutoButtonColor = false
+    track.Size = UDim2.fromOffset(44, 24)
+    track.Position = pos
+    track.BackgroundColor3 = Color3.fromRGB(45,45,52)
+    track.BorderSizePixel = 0
+    track.Parent = parent
+
+    local trackCorner = Instance.new("UICorner")
+    trackCorner.CornerRadius = UDim.new(1, 0)
+    trackCorner.Parent = track
+
+    local trackStroke = Instance.new("UIStroke")
+    trackStroke.Thickness = 1
+    trackStroke.Color = Color3.fromRGB(255,255,255)
+    trackStroke.Transparency = 0.85
+    trackStroke.Parent = track
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.fromOffset(18, 18)
+    knob.Position = UDim2.fromOffset(3, 3)
+    knob.BackgroundColor3 = Color3.fromRGB(210,210,218)
+    knob.BorderSizePixel = 0
+    knob.Parent = track
+
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(1, 0)
+    knobCorner.Parent = knob
+
+    local knobShadow = Instance.new("UIShadow")
+    knobShadow.Color = Color3.fromRGB(0,0,0)
+    knobShadow.Transparency = 0.6
+    knobShadow.BlurRadius = UDim.new(0, 4)
+    knobShadow.Offset = UDim2.fromOffset(0, 1)
+    knobShadow.Parent = knob
+
+    local function apply(animated)
+        local ti = TweenInfo.new(animated and 0.18 or 0, Enum.EasingStyle.Quad)
+        local trackColor = state and Color3.fromRGB(80,200,160) or Color3.fromRGB(45,45,52)
+        local knobPos = state and UDim2.fromOffset(23, 3) or UDim2.fromOffset(3, 3)
+        local knobColor = state and Color3.fromRGB(255,255,255) or Color3.fromRGB(210,210,218)
+        TweenService:Create(track, ti, {BackgroundColor3 = trackColor}):Play()
+        TweenService:Create(knob, ti, {Position = knobPos, BackgroundColor3 = knobColor}):Play()
+    end
+
+    track.MouseButton1Click:Connect(function()
+        state = not state
+        apply(true)
+        if onChanged then onChanged(state) end
+    end)
+
     return {
-        {text = "Copy ID", onClick = function() copyText(tostring(entry.Id)) end},
-        {text = "Copy User", onClick = function() copyText(entry.Name) end},
-        {text = "Copy Name", onClick = function() copyText(entry.DisplayName) end},
-        {text = "Apply Skin", color = THEME.Accent, onClick = function() applySkin(entry) end},
+        Set = function(newState, animated)
+            if newState == state then return end
+            state = newState
+            apply(animated ~= false)
+        end,
+        Get = function() return state end,
     }
 end
 
-local function renderPaginated(scrollFrame, filterBox, fullList, pageRef, showRemove, resetPage)
-    if resetPage then pageRef.page = 1 end
-    clearScroll(scrollFrame)
-    local query = filterBox.Text:lower()
-    local filtered = {}
-    for _, entry in ipairs(fullList) do
-        if query == "" or entry.Name:lower():find(query, 1, true) or entry.DisplayName:lower():find(query, 1, true) then
-            table.insert(filtered, entry)
-        end
-    end
+-- --- قائمة اللاعبين (سكرول) ---
+local playersList = Instance.new("ScrollingFrame")
+playersList.Size = UDim2.new(1, -20, 0, 150)
+playersList.Position = UDim2.fromOffset(10, PLAYERS_LIST_TOP)
+playersList.BackgroundTransparency = 1
+playersList.BorderSizePixel = 0
+playersList.ScrollBarThickness = 3
+playersList.ScrollBarImageColor3 = Color3.fromRGB(90,90,100)
+playersList.ScrollingDirection = Enum.ScrollingDirection.Y
+playersList.CanvasSize = UDim2.new(0, 0, 0, 0)
+playersList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+playersList.Parent = PlayersTab
 
-    local showCount = math.min(pageRef.page * PAGE_SIZE, #filtered)
-    for i = 1, showCount do
-        makeRow(scrollFrame, filtered[i], i, searchButtonsFor(filtered[i]), showRemove)
-        if i % 40 == 0 then task.wait() end
-    end
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 5)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = playersList
 
-    if showCount < #filtered then
-        local loadMoreBtn = Instance.new("TextButton")
-        loadMoreBtn.Size = UDim2.new(1, 0, 0, 34)
-        loadMoreBtn.LayoutOrder = showCount + 1
-        loadMoreBtn.BackgroundColor3 = THEME.Row
-        loadMoreBtn.Text = "تحميل المزيد (" .. (#filtered - showCount) .. " متبقي)"
-        loadMoreBtn.Font = Enum.Font.GothamBold
-        loadMoreBtn.TextSize = 12
-        loadMoreBtn.TextColor3 = THEME.Accent
-        loadMoreBtn.Parent = scrollFrame
-        Instance.new("UICorner", loadMoreBtn).CornerRadius = UDim.new(0, 8)
-        loadMoreBtn.MouseButton1Click:Connect(function()
-            pageRef.page += 1
-            renderPaginated(scrollFrame, filterBox, fullList, pageRef, showRemove, false)
-        end)
-    end
-end
+-- --- زر الانتقال (ضغطة وحدة) ---
+local teleportBtn = createActionButton(PlayersTab, 166, "TELEPORT TO PLAYER", Color3.fromRGB(120,160,255))
+teleportBtn.Size = UDim2.new(1, -20, 0, 34)
+teleportBtn.Position = UDim2.fromOffset(10, 166)
 
-renderSearchRows = function(list)
-    renderPaginated(scrollSearch, searchFilterBox, list, searchPageRef, false, true)
-end
-
-renderAppliedTab = function()
-    renderPaginated(scrollApplied, appliedFilterBox, appliedList, appliedPageRef, true, false)
-end
-
-searchFilterBox:GetPropertyChangedSignal("Text"):Connect(function()
-    renderPaginated(scrollSearch, searchFilterBox, currentResults, searchPageRef, false, true)
+bindAction(teleportBtn, function()
+    assert(selectedPlayer, "no selection")
+    local targetChar = selectedPlayer.Character
+    local myChar = player.Character
+    assert(targetChar and myChar, "missing character")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    assert(targetRoot and myRoot, "missing root part")
+    myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 4)
 end)
 
-appliedFilterBox:GetPropertyChangedSignal("Text"):Connect(function()
-    renderPaginated(scrollApplied, appliedFilterBox, appliedList, appliedPageRef, true, true)
-end)
+-- --- شريط التحكم (Spectate + Follow) ---
+local controlsBar = Instance.new("Frame")
+controlsBar.Size = UDim2.new(1, -20, 0, CONTROLS_BAR_HEIGHT)
+controlsBar.Position = UDim2.fromOffset(10, 208)
+controlsBar.BackgroundColor3 = Color3.fromRGB(27,27,32)
+controlsBar.BorderSizePixel = 0
+controlsBar.Parent = PlayersTab
 
---// FETCH FLOW //--
-local fetching = false
-fetchBtn.MouseButton1Click:Connect(function()
-    if fetching then return end
-    fetching = true
-    fetchBtn.Text = "..."
-    status.Text = "جاري التحليل..."
-    status.TextColor3 = THEME.SubText
-    clearScroll(scrollSearch)
+local controlsBarCorner = Instance.new("UICorner")
+controlsBarCorner.CornerRadius = UDim.new(0, 10)
+controlsBarCorner.Parent = controlsBar
 
-    local input = inputBox.Text
-    if input == "" then
-        status.Text = "اكتب يوزرنيم أو UserId"
-        status.TextColor3 = THEME.Error
-        fetchBtn.Text = "Fetch"
-        fetching = false
-        return
-    end
+local controlsBarStroke = Instance.new("UIStroke")
+controlsBarStroke.Thickness = 1
+controlsBarStroke.Color = Color3.fromRGB(255,255,255)
+controlsBarStroke.Transparency = 0.85
+controlsBarStroke.Parent = controlsBar
 
-    task.spawn(function()
-        local ok, userId = resolveUserId(input)
-        if not ok then
-            status.Text = "فشل: " .. tostring(userId)
-            status.TextColor3 = THEME.Error
-            fetchBtn.Text = "Fetch"
-            fetching = false
+local controlsDivider = Instance.new("Frame")
+controlsDivider.Size = UDim2.new(1, -24, 0, 1)
+controlsDivider.Position = UDim2.fromOffset(12, 33)
+controlsDivider.BackgroundColor3 = Color3.fromRGB(255,255,255)
+controlsDivider.BackgroundTransparency = 0.92
+controlsDivider.BorderSizePixel = 0
+controlsDivider.Parent = controlsBar
+
+-- صف Spectate
+spectateLabel = Instance.new("TextLabel")
+spectateLabel.BackgroundTransparency = 1
+spectateLabel.Position = UDim2.fromOffset(12, 3)
+spectateLabel.Size = UDim2.fromOffset(155, 24)
+spectateLabel.Font = Enum.Font.GothamBold
+spectateLabel.TextSize = 10
+spectateLabel.TextColor3 = Color3.fromRGB(150,150,160)
+spectateLabel.TextXAlignment = Enum.TextXAlignment.Left
+spectateLabel.TextTruncate = Enum.TextTruncate.AtEnd
+spectateLabel.Text = "SELECT A PLAYER"
+spectateLabel.Parent = controlsBar
+
+spectateToggle = createToggleSwitch(controlsBar, UDim2.new(1, -54, 0, 5), function(state)
+    if state then
+        if not selectedPlayer then
+            spectateToggle.Set(false, false)
             return
         end
+        startSpectate()
+    else
+        stopSpectate(true)
+    end
+end)
 
-        local ids
-        if mode == "Friends" then
-            status.Text = "جاري جلب قائمة الأصدقاء..."
-            ids = getFriendIds(userId)
-        else
-            local target = tonumber(targetBox.Text) or 1000
-            status.Text = "جاري جلب قائمة المتابعين..."
-            ids = getFollowerIds(userId, target, function(count)
-                status.Text = "جلب IDs: " .. count .. " / " .. target
+-- صف Follow
+followLabel = Instance.new("TextLabel")
+followLabel.BackgroundTransparency = 1
+followLabel.Position = UDim2.fromOffset(12, 37)
+followLabel.Size = UDim2.fromOffset(155, 24)
+followLabel.Font = Enum.Font.GothamBold
+followLabel.TextSize = 10
+followLabel.TextColor3 = Color3.fromRGB(150,150,160)
+followLabel.TextXAlignment = Enum.TextXAlignment.Left
+followLabel.TextTruncate = Enum.TextTruncate.AtEnd
+followLabel.Text = "SELECT A PLAYER"
+followLabel.Parent = controlsBar
+
+followToggle = createToggleSwitch(controlsBar, UDim2.new(1, -54, 0, 39), function(state)
+    if state then
+        if not selectedPlayer then
+            followToggle.Set(false, false)
+            return
+        end
+        startFollow()
+    else
+        stopFollow(true)
+    end
+end)
+
+-- --- تخطيط تبويب PLAYERS الديناميكي (يعرض القائمة كاملة قدر الإمكان) ---
+local function computePlayersLayout()
+    local rows = 0
+    for _ in pairs(playerRows) do rows += 1 end
+    if rows < 1 then rows = 1 end
+
+    local rowsHeight = rows * ROW_HEIGHT + math.max(0, rows - 1) * 5
+    local chromeHeight = PLAYERS_LIST_TOP + PLAYERS_GAP + TELEPORT_BTN_HEIGHT + PLAYERS_GAP + CONTROLS_BAR_HEIGHT + BOTTOM_PADDING
+    local wantedCardHeight = CONTENT_TOP + chromeHeight + math.max(MIN_LIST_HEIGHT, rowsHeight)
+    local cardHeight = math.clamp(wantedCardHeight, BASE_CARD_HEIGHT, MAX_CARD_HEIGHT)
+    local listHeight = cardHeight - CONTENT_TOP - chromeHeight
+
+    return cardHeight, listHeight
+end
+
+local function applyPlayersLayout(animated)
+    local cardHeight, listHeight = computePlayersLayout()
+    local teleportY = PLAYERS_LIST_TOP + listHeight + PLAYERS_GAP
+    local controlsY = teleportY + TELEPORT_BTN_HEIGHT + PLAYERS_GAP
+
+    local ti = TweenInfo.new(animated and 0.28 or 0, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    TweenService:Create(playersList, ti, {Size = UDim2.new(1, -20, 0, listHeight)}):Play()
+    TweenService:Create(teleportBtn, ti, {Position = UDim2.fromOffset(10, teleportY)}):Play()
+    TweenService:Create(controlsBar, ti, {Position = UDim2.fromOffset(10, controlsY)}):Play()
+
+    if currentTab == "players" then
+        TweenService:Create(card, ti, {Size = UDim2.fromOffset(CARD_WIDTH, cardHeight)}):Play()
+    end
+end
+
+-- --- تحديث شكل التحديد لكل الصفوف ---
+local function updateSelectionVisuals()
+    for p, data in pairs(playerRows) do
+        local isSel = (p == selectedPlayer)
+        TweenService:Create(data.Stroke, TweenInfo.new(0.15), {
+            Color = isSel and Color3.fromRGB(120,160,255) or Color3.fromRGB(255,255,255),
+            Transparency = isSel and 0.15 or 0.85,
+        }):Play()
+        TweenService:Create(data.Frame, TweenInfo.new(0.15), {
+            BackgroundColor3 = isSel and Color3.fromRGB(36,36,44) or Color3.fromRGB(27,27,32),
+        }):Play()
+        TweenService:Create(data.CheckDot, TweenInfo.new(0.15), {
+            BackgroundTransparency = isSel and 0 or 1,
+        }):Play()
+        TweenService:Create(data.AccentBar, TweenInfo.new(0.15), {
+            BackgroundTransparency = isSel and 0 or 1,
+        }):Play()
+    end
+
+    if selectedPlayer then
+        if spectating then
+            applySpectateSubject(selectedPlayer)
+            if spectateCharConn then spectateCharConn:Disconnect() end
+            spectateCharConn = selectedPlayer.CharacterAdded:Connect(function()
+                task.wait(0.5)
+                applySpectateSubject(selectedPlayer)
             end)
         end
-
-        if #ids == 0 then
-            status.Text = "ما فيه نتائج صحيحة (قائمة خاصة أو فارغة)"
-            status.TextColor3 = THEME.Error
-            fetchBtn.Text = "Fetch"
-            fetching = false
-            return
-        end
-
-        local names = batchResolveNames(ids, function(done, total)
-            status.Text = "استخراج الأسماء: " .. done .. " / " .. total
-        end)
-
-        local thumbs = batchResolveThumbnails(ids, function(done, total)
-            status.Text = "جلب الصور: " .. done .. " / " .. total
-        end)
-
-        local results = {}
-        for _, id in ipairs(ids) do
-            local info = names[id]
-            table.insert(results, {
-                Id = id,
-                Name = info and info.Name or ("id_" .. tostring(id)),
-                DisplayName = info and info.DisplayName or "?",
-                Verified = info and info.Verified or false,
-                Avatar = thumbs[id],
-            })
-        end
-
-        currentResults = results
-        renderSearchRows(currentResults)
-        status.Text = "تم — الإجمالي: " .. #results
-        status.TextColor3 = THEME.SubText
-        fetchBtn.Text = "Fetch"
-        fetching = false
-    end)
-end)
-
-copyAllBtn.MouseButton1Click:Connect(function()
-    if #currentResults == 0 then return end
-    local lines = {}
-    for _, e in ipairs(currentResults) do
-        table.insert(lines, e.Name .. " | " .. e.DisplayName .. " | " .. e.Id)
-    end
-    local text = table.concat(lines, "\n")
-    if setclipboard then
-        pcall(setclipboard, text)
-        status.Text = "تم نسخ " .. #currentResults .. " سطر"
     else
-        print(text)
+        stopSpectate(false)
+        stopFollow(false)
     end
-end)
-
-copyAllAppliedBtn.MouseButton1Click:Connect(function()
-    if #appliedList == 0 then return end
-    local lines = {}
-    for _, e in ipairs(appliedList) do
-        table.insert(lines, e.Name .. " | " .. e.DisplayName .. " | " .. e.Id)
-    end
-    local text = table.concat(lines, "\n")
-    if setclipboard then
-        pcall(setclipboard, text)
-        status.Text = "تم نسخ قائمة الأبلايد"
-    else
-        print(text)
-    end
-end)
-
-clearAllBtn.MouseButton1Click:Connect(function()
-    appliedList = {}
-    appliedIds = {}
-    saveAppliedFile(appliedList)
-    renderAppliedTab()
-end)
-
---// INITIAL LOAD (persisted applied list) //--
-appliedList = loadAppliedFile()
-for _, e in ipairs(appliedList) do
-    appliedIds[e.Id] = true
+    refreshControlsLabels()
 end
-renderAppliedTab()
+
+local function selectPlayer(plr)
+    if selectedPlayer == plr then
+        selectedPlayer = nil
+    else
+        selectedPlayer = plr
+    end
+    updateSelectionVisuals()
+end
+
+-- --- إنشاء صف لاعب واحد ---
+local function createPlayerRow(plr)
+    rowCounter += 1
+
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, ROW_HEIGHT)
+    row.BackgroundColor3 = Color3.fromRGB(27,27,32)
+    row.BorderSizePixel = 0
+    row.LayoutOrder = rowCounter
+    row.Parent = playersList
+
+    local rowCorner = Instance.new("UICorner")
+    rowCorner.CornerRadius = UDim.new(0, 8)
+    rowCorner.Parent = row
+
+    local rowStroke = Instance.new("UIStroke")
+    rowStroke.Thickness = 1
+    rowStroke.Color = Color3.fromRGB(255,255,255)
+    rowStroke.Transparency = 0.85
+    rowStroke.Parent = row
+
+    local rowShadow = Instance.new("UIShadow")
+    rowShadow.Color = Color3.fromRGB(0,0,0)
+    rowShadow.Transparency = 0.82
+    rowShadow.BlurRadius = UDim.new(0, 5)
+    rowShadow.Offset = UDim2.fromOffset(0, 2)
+    rowShadow.Parent = row
+
+    -- شريط تمييز على اليسار عند التحديد
+    local accentBar = Instance.new("Frame")
+    accentBar.Size = UDim2.new(0, 3, 1, 0)
+    accentBar.Position = UDim2.fromOffset(0, 0)
+    accentBar.BackgroundColor3 = Color3.fromRGB(120,160,255)
+    accentBar.BackgroundTransparency = 1
+    accentBar.BorderSizePixel = 0
+    accentBar.ZIndex = 2
+    accentBar.Parent = row
+
+    local rowBtn = Instance.new("TextButton")
+    rowBtn.Size = UDim2.new(1, 0, 1, 0)
+    rowBtn.BackgroundTransparency = 1
+    rowBtn.Text = ""
+    rowBtn.ZIndex = 3
+    rowBtn.Parent = row
+
+    local av = Instance.new("ImageLabel")
+    av.Size = UDim2.fromOffset(AV_SIZE, AV_SIZE)
+    av.Position = UDim2.fromOffset(6, (ROW_HEIGHT - AV_SIZE) / 2)
+    av.BackgroundColor3 = Color3.fromRGB(36,36,42)
+    av.Parent = row
+
+    local avCorner = Instance.new("UICorner")
+    avCorner.CornerRadius = UDim.new(1, 0)
+    avCorner.Parent = av
+
+    local avStroke = Instance.new("UIStroke")
+    avStroke.Thickness = 1
+    avStroke.Color = Color3.fromRGB(255,255,255)
+    avStroke.Transparency = 0.6
+    avStroke.Parent = av
+
+    av.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+
+    local avDot = Instance.new("Frame")
+    avDot.Size = UDim2.fromOffset(8, 8)
+    avDot.Position = UDim2.fromOffset(22, 22)
+    avDot.BackgroundColor3 = Color3.fromRGB(90, 220, 130)
+    avDot.BorderSizePixel = 0
+    avDot.ZIndex = 2
+    avDot.Parent = av
+
+    local avDotCorner = Instance.new("UICorner")
+    avDotCorner.CornerRadius = UDim.new(1, 0)
+    avDotCorner.Parent = avDot
+
+    local avDotStroke = Instance.new("UIStroke")
+    avDotStroke.Thickness = 1.5
+    avDotStroke.Color = Color3.fromRGB(27,27,32)
+    avDotStroke.Parent = avDot
+
+    local dName = Instance.new("TextLabel")
+    dName.BackgroundTransparency = 1
+    dName.Position = UDim2.fromOffset(46, 4)
+    dName.Size = UDim2.fromOffset(150, 15)
+    dName.Font = Enum.Font.GothamBold
+    dName.TextSize = 11
+    dName.TextColor3 = Color3.fromRGB(255,255,255)
+    dName.TextXAlignment = Enum.TextXAlignment.Left
+    dName.TextTruncate = Enum.TextTruncate.AtEnd
+    dName.Text = plr.DisplayName
+    dName.Parent = row
+
+    local uName = Instance.new("TextLabel")
+    uName.BackgroundTransparency = 1
+    uName.Position = UDim2.fromOffset(46, 20)
+    uName.Size = UDim2.fromOffset(150, 13)
+    uName.Font = Enum.Font.Gotham
+    uName.TextSize = 9
+    uName.TextColor3 = Color3.fromRGB(140,140,150)
+    uName.TextXAlignment = Enum.TextXAlignment.Left
+    uName.TextTruncate = Enum.TextTruncate.AtEnd
+    uName.Text = "@" .. plr.Name
+    uName.Parent = row
+
+    -- ===== معلومات إضافية: عمر الحساب + مدة التواجد بالسيرفر =====
+    local extraInfo = Instance.new("TextLabel")
+    extraInfo.Name = "ExtraInfo"
+    extraInfo.BackgroundTransparency = 1
+    extraInfo.Position = UDim2.fromOffset(46, 36)
+    extraInfo.Size = UDim2.fromOffset(150, 13)
+    extraInfo.Font = Enum.Font.Gotham
+    extraInfo.TextSize = 9
+    extraInfo.TextColor3 = Color3.fromRGB(120,160,255)
+    extraInfo.TextXAlignment = Enum.TextXAlignment.Left
+    extraInfo.TextTruncate = Enum.TextTruncate.AtEnd
+    extraInfo.Text = "Age: " .. tostring(plr.AccountAge) .. "d"
+    extraInfo.Parent = row
+
+    -- شارة "YOU"
+    if plr == player then
+        local youBadge = Instance.new("Frame")
+        youBadge.Size = UDim2.fromOffset(28, 13)
+        youBadge.AnchorPoint = Vector2.new(1, 0.5)
+        youBadge.Position = UDim2.new(1, -14, 0.5, 0)
+        youBadge.BackgroundColor3 = Color3.fromRGB(120,160,255)
+        youBadge.BackgroundTransparency = 0.85
+        youBadge.BorderSizePixel = 0
+        youBadge.Parent = row
+
+        local youBadgeCorner = Instance.new("UICorner")
+        youBadgeCorner.CornerRadius = UDim.new(1, 0)
+        youBadgeCorner.Parent = youBadge
+
+        local youBadgeStroke = Instance.new("UIStroke")
+        youBadgeStroke.Thickness = 1
+        youBadgeStroke.Color = Color3.fromRGB(120,160,255)
+        youBadgeStroke.Transparency = 0.4
+        youBadgeStroke.Parent = youBadge
+
+        local youBadgeText = Instance.new("TextLabel")
+        youBadgeText.BackgroundTransparency = 1
+        youBadgeText.Size = UDim2.new(1, 0, 1, 0)
+        youBadgeText.Font = Enum.Font.GothamBold
+        youBadgeText.TextSize = 7
+        youBadgeText.TextColor3 = Color3.fromRGB(120,160,255)
+        youBadgeText.Text = "YOU"
+        youBadgeText.Parent = youBadge
+    end
+
+    local checkDot = Instance.new("Frame")
+    checkDot.Size = UDim2.fromOffset(7, 7)
+    checkDot.AnchorPoint = Vector2.new(1, 0.5)
+    checkDot.Position = UDim2.new(1, -8, 0.5, 0)
+    checkDot.BackgroundColor3 = Color3.fromRGB(120,160,255)
+    checkDot.BackgroundTransparency = 1
+    checkDot.BorderSizePixel = 0
+    checkDot.Parent = row
+
+    local checkDotCorner = Instance.new("UICorner")
+    checkDotCorner.CornerRadius = UDim.new(1, 0)
+    checkDotCorner.Parent = checkDot
+
+    rowBtn.MouseButton1Click:Connect(function()
+        selectPlayer(plr)
+    end)
+
+    playerRows[plr] = {
+        Frame = row,
+        Stroke = rowStroke,
+        CheckDot = checkDot,
+        AccentBar = accentBar,
+        ExtraInfo = extraInfo,
+        JoinTime = os.clock(),
+        AccountAge = plr.AccountAge,
+    }
+end
+
+local function addPlayerRow(plr)
+    createPlayerRow(plr)
+    applyPlayersLayout(currentTab == "players")
+end
+
+-- تعبئة اللاعبين الحاليين + الاستماع للدخول/الخروج
+for _, p in ipairs(Players:GetPlayers()) do
+    createPlayerRow(p)
+end
+
+Players.PlayerAdded:Connect(addPlayerRow)
+
+Players.PlayerRemoving:Connect(function(p)
+    local data = playerRows[p]
+    if data then
+        data.Frame:Destroy()
+        playerRows[p] = nil
+    end
+    if selectedPlayer == p then
+        selectedPlayer = nil
+        updateSelectionVisuals()
+    end
+    applyPlayersLayout(currentTab == "players")
+end)
+
+-- تحديث "عمر الحساب + مدة التواجد" كل ثانية لكل صف
+task.spawn(function()
+    while card.Parent do
+        for _, data in pairs(playerRows) do
+            data.ExtraInfo.Text = "Age: " .. tostring(data.AccountAge) .. "d  •  In: " .. formatDuration(os.clock() - data.JoinTime)
+        end
+        task.wait(1)
+    end
+end)
+
+-- ===== بينق مطابق للرسمي =====
+task.spawn(function()
+    local networkStats = Stats.Network
+    local longSum, longCount = 0, 0
+
+    while card.Parent do
+        local ok, ping = pcall(function()
+            return networkStats.ServerStatsItem["Data Ping"]:GetValue()
+        end)
+        if ok then
+            local displayPing = math.floor(ping + 0.5)
+            pingValue.Text = displayPing .. " ms"
+
+            longSum += ping
+            longCount += 1
+            local avg = math.floor(longSum / longCount)
+            pingAvg.Text = "avg: " .. avg .. " ms"
+
+            local color
+            if displayPing < 80 then
+                color = Color3.fromRGB(100, 220, 130)
+            elseif displayPing < 150 then
+                color = Color3.fromRGB(240, 200, 90)
+            else
+                color = Color3.fromRGB(240, 90, 90)
+            end
+            pingValue.TextColor3 = color
+            TweenService:Create(pingDot, TweenInfo.new(0.3), {BackgroundColor3 = color}):Play()
+            TweenService:Create(pingStroke, TweenInfo.new(0.3), {Color = color, Transparency = 0.45}):Play()
+        end
+        task.wait(1)
+    end
+end)
+
+-- ===== FPS =====
+do
+    local frames = 0
+    local elapsed = 0
+    RunService.RenderStepped:Connect(function(dt)
+        if not card.Parent then return end
+        frames += 1
+        elapsed += dt
+        if elapsed >= 0.5 then
+            local fps = math.floor(frames / elapsed)
+            fpsValue.Text = tostring(fps)
+
+            local color
+            if fps >= 50 then
+                color = Color3.fromRGB(100, 220, 130)
+            elseif fps >= 30 then
+                color = Color3.fromRGB(240, 200, 90)
+            else
+                color = Color3.fromRGB(240, 90, 90)
+            end
+            fpsValue.TextColor3 = color
+            TweenService:Create(fpsDot, TweenInfo.new(0.3), {BackgroundColor3 = color}):Play()
+            TweenService:Create(fpsStroke, TweenInfo.new(0.3), {Color = color, Transparency = 0.45}):Play()
+
+            elapsed = 0
+            frames = 0
+        end
+    end)
+end
+
+-- ===== مؤقت الجلسة =====
+task.spawn(function()
+    local startTime = os.clock()
+    while card.Parent do
+        local elapsed = math.floor(os.clock() - startTime)
+        local h = math.floor(elapsed / 3600)
+        local m = math.floor((elapsed % 3600) / 60)
+        local s = elapsed % 60
+        timerValue.Text = string.format("%02d:%02d:%02d", h, m, s)
+        task.wait(1)
+    end
+end)
+
+-- ===== الساعة =====
+task.spawn(function()
+    while card.Parent do
+        local now = DateTime.now():ToLocalTime()
+        local hour12 = now.Hour % 12
+        if hour12 == 0 then hour12 = 12 end
+        clockValue.Text = string.format("%d:%02d:%02d", hour12, now.Minute, now.Second)
+        task.wait(1)
+    end
+end)
+
+-- ===== منطق تبديل التبويبات (3 تبويبات) =====
+currentTab = "player"
+local tabOrder = {"player", "players", "server"}
+local tabPanels = {player = PlayerTab, players = PlayersTab, server = ServerTab}
+local tabButtons = {player = tabBtnPlayer, players = tabBtnPlayers, server = tabBtnServer}
+
+local function indexOf(tab)
+    for i, v in ipairs(tabOrder) do
+        if v == tab then return i end
+    end
+end
+
+function switchTab(tab)
+    if tab == currentTab then return end
+    local newIdx = indexOf(tab)
+    local previousTab = currentTab
+    currentTab = tab
+    local moveInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local colorInfo = TweenInfo.new(0.2)
+
+    for _, name in ipairs(tabOrder) do
+        local idx = indexOf(name)
+        local targetX = (idx - newIdx) * CARD_WIDTH
+        TweenService:Create(tabPanels[name], moveInfo, {Position = UDim2.fromOffset(targetX, CONTENT_TOP)}):Play()
+        TweenService:Create(tabButtons[name], colorInfo, {
+            TextColor3 = (name == tab) and Color3.fromRGB(255,255,255) or Color3.fromRGB(140,140,150)
+        }):Play()
+    end
+
+    local indicatorX = TAB_PAD + (newIdx - 1) * (TAB_BTN_W + TAB_PAD)
+    TweenService:Create(indicator, moveInfo, {Position = UDim2.fromOffset(indicatorX, TAB_PAD)}):Play()
+
+    if tab == "players" then
+        applyPlayersLayout(true)
+    elseif previousTab == "players" then
+        TweenService:Create(card, moveInfo, {Size = UDim2.fromOffset(CARD_WIDTH, BASE_CARD_HEIGHT)}):Play()
+    end
+end
+
+tabBtnPlayer.MouseButton1Click:Connect(function() switchTab("player") end)
+tabBtnPlayers.MouseButton1Click:Connect(function() switchTab("players") end)
+tabBtnServer.MouseButton1Click:Connect(function() switchTab("server") end)
+
+-- ===== سحب البطاقة =====
+do
+    local dragging = false
+    local dragStart, startPos
+
+    card.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = card.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            card.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+-- ===== زر التحكم (فتح / إغلاق) =====
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleButton"
+toggleBtn.Text = ""
+toggleBtn.AutoButtonColor = false
+toggleBtn.Size = UDim2.fromOffset(40, 40)
+toggleBtn.AnchorPoint = Vector2.new(0, 1)
+toggleBtn.Position = UDim2.new(0, 12, 1, -12)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.ZIndex = 5
+toggleBtn.Parent = screenGui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggleBtn
+
+local toggleShadow = Instance.new("UIShadow")
+toggleShadow.Color = Color3.fromRGB(0, 0, 0)
+toggleShadow.Transparency = 0.55
+toggleShadow.BlurRadius = UDim.new(0, 14)
+toggleShadow.Offset = UDim2.fromOffset(0, 4)
+toggleShadow.Parent = toggleBtn
+
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Thickness = 1.25
+toggleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+toggleStroke.Parent = toggleBtn
+
+local toggleStrokeGradient = Instance.new("UIGradient")
+toggleStrokeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(120,120,135)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,255,255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(120,120,135)),
+})
+toggleStrokeGradient.Parent = toggleStroke
+
+task.spawn(function()
+    local rot = 0
+    while toggleBtn.Parent do
+        rot = (rot + 1) % 360
+        toggleStrokeGradient.Rotation = rot
+        task.wait(0.03)
+    end
+end)
+
+local bar1 = Instance.new("Frame")
+bar1.Size = UDim2.fromOffset(18, 2)
+bar1.AnchorPoint = Vector2.new(0.5, 0.5)
+bar1.Position = UDim2.new(0.5, 0, 0.5, -4)
+bar1.BackgroundColor3 = Color3.fromRGB(235, 235, 240)
+bar1.BorderSizePixel = 0
+bar1.Parent = toggleBtn
+
+local bar1Corner = Instance.new("UICorner")
+bar1Corner.CornerRadius = UDim.new(1, 0)
+bar1Corner.Parent = bar1
+
+local bar2 = bar1:Clone()
+bar2.Position = UDim2.new(0.5, 0, 0.5, 4)
+bar2.Parent = toggleBtn
+
+toggleBtn.MouseEnter:Connect(function()
+    TweenService:Create(toggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30, 30, 36)}):Play()
+end)
+toggleBtn.MouseLeave:Connect(function()
+    TweenService:Create(toggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(20, 20, 24)}):Play()
+end)
+
+local isOpen = true
+
+local function setIconState(open)
+    if open then
+        TweenService:Create(bar1, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Rotation = 45, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+        TweenService:Create(bar2, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Rotation = -45, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+    else
+        TweenService:Create(bar1, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Rotation = 0, Position = UDim2.new(0.5, 0, 0.5, -4)}):Play()
+        TweenService:Create(bar2, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Rotation = 0, Position = UDim2.new(0.5, 0, 0.5, 4)}):Play()
+    end
+end
+
+toggleBtn.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    setIconState(isOpen)
+
+    if isOpen then
+        card.Visible = true
+        card.Size = UDim2.fromOffset(CARD_WIDTH, 0)
+        card.BackgroundTransparency = 1
+        local targetHeight = BASE_CARD_HEIGHT
+        if currentTab == "players" then
+            targetHeight = select(1, computePlayersLayout())
+        end
+        TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(CARD_WIDTH, targetHeight),
+            BackgroundTransparency = 0,
+        }):Play()
+    else
+        local closeTween = TweenService:Create(card, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.fromOffset(CARD_WIDTH, 0),
+            BackgroundTransparency = 1,
+        })
+        closeTween:Play()
+        closeTween.Completed:Connect(function()
+            if not isOpen then
+                card.Visible = false
+            end
+        end)
+    end
+end)
+
+-- ===== أنيميشن الظهور الأولي =====
+card.Size = UDim2.fromOffset(CARD_WIDTH, 0)
+card.BackgroundTransparency = 1
+TweenService:Create(card, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
+    BackgroundTransparency = 0,
+}):Play()
+
+-- تهيئة تخطيط تبويب اللاعبين من البداية (بدون تحريك الكرت لأنه غير مفتوح على هذا التبويب)
+applyPlayersLayout(false)
 
 
 
