@@ -1,7 +1,3 @@
--- StatsCard : بينق مطابق للرسمي + FPS + مؤقت جلسة + ساعة 12h + تبويبات (لاعب/لاعبين/سيرفر) + احترافي
--- + معلومات إضافية لكل لاعب + زر Follow + قائمة لاعبين كاملة الحجم
--- ضعه كـ LocalScript داخل StarterGui
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -13,18 +9,16 @@ local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 
--- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "StatsCard"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ===== الكرت الرئيسي =====
 local CARD_WIDTH = 256
 local CARD_HEIGHT = 300
 local BASE_CARD_HEIGHT = CARD_HEIGHT
-local MAX_CARD_HEIGHT = 400 -- ✅ تم تقليله من 560 عشان ما يطلع طويل جدًا عند فتح تبويب PLAYERS
+local MAX_CARD_HEIGHT = 460
 
 local card = Instance.new("Frame")
 card.Name = "Card"
@@ -76,7 +70,6 @@ bgGradient.Color = ColorSequence.new({
 bgGradient.Rotation = 90
 bgGradient.Parent = card
 
--- ===== شريط التبويبات (3 تبويبات) =====
 local TAB_TOP = 10
 local TAB_HEIGHT = 32
 local CONTENT_TOP = 52
@@ -132,7 +125,6 @@ tabBtnPlayer.TextColor3 = Color3.fromRGB(255,255,255)
 local tabBtnPlayers = createTabButton("PLAYERS", TAB_PAD*2 + TAB_BTN_W)
 local tabBtnServer  = createTabButton("SERVER",  TAB_PAD*3 + TAB_BTN_W*2)
 
--- ===== حاويات التبويبات =====
 local PlayerTab = Instance.new("Frame")
 PlayerTab.Name = "PlayerTab"
 PlayerTab.Size = UDim2.new(1, 0, 0, TAB_CONTENT_HEIGHT)
@@ -154,7 +146,6 @@ ServerTab.Position = UDim2.fromOffset(CARD_WIDTH * 2, CONTENT_TOP)
 ServerTab.BackgroundTransparency = 1
 ServerTab.Parent = card
 
--- ===== قسم اللاعب (داخل PlayerTab) =====
 local avatar = Instance.new("ImageLabel")
 avatar.Name = "Avatar"
 avatar.Size = UDim2.fromOffset(44, 44)
@@ -232,7 +223,6 @@ dividerGradient.Transparency = NumberSequence.new({
 })
 dividerGradient.Parent = divider
 
--- ===== دالة صندوق إحصائية (تُستخدم بالتبويبات) =====
 local function createStatBox(parent, xPos, yPos, width, height, label, accentColor)
     local box = Instance.new("Frame")
     box.Size = UDim2.fromOffset(width, height)
@@ -282,7 +272,6 @@ local function createStatBox(parent, xPos, yPos, width, height, label, accentCol
     return box, dot, boxStroke
 end
 
--- ===== دالة زر إجراء =====
 local function createActionButton(parent, yPos, text, accentColor)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -24, 0, 40)
@@ -322,7 +311,6 @@ local function createActionButton(parent, yPos, text, accentColor)
     return btn
 end
 
--- ===== صف أول: PING + FPS =====
 local pingBox, pingDot, pingStroke = createStatBox(PlayerTab, 12, 76, 112, 54, "PING", Color3.fromRGB(100,220,130))
 
 local pingValue = Instance.new("TextLabel")
@@ -362,7 +350,6 @@ fpsValue.TextXAlignment = Enum.TextXAlignment.Left
 fpsValue.Text = "--"
 fpsValue.Parent = fpsBox
 
--- ===== صف ثاني: مؤقت الجلسة + الساعة =====
 local timerBox = createStatBox(PlayerTab, 12, 138, 112, 50, "SESSION", Color3.fromRGB(120,160,255))
 
 local timerValue = Instance.new("TextLabel")
@@ -391,7 +378,6 @@ clockValue.TextXAlignment = Enum.TextXAlignment.Left
 clockValue.Text = "--:--:--"
 clockValue.Parent = clockBox
 
--- ===== قسم السيرفر (داخل ServerTab) =====
 local gameBox = createStatBox(ServerTab, 12, 12, 232, 46, "GAME", Color3.fromRGB(255,190,90))
 
 local gameNameValue = Instance.new("TextLabel")
@@ -504,37 +490,46 @@ bindAction(hopBtn, function()
     TeleportService:Teleport(game.PlaceId, player)
 end)
 
--- ============================================================
--- ===== قسم تبويب PLAYERS: قائمة لاعبين حية =====
--- ============================================================
-
 local playerRows = {}
 local rowCounter = 0
 local selectedPlayer = nil
 
--- --- إعدادات صف اللاعب ---
 local ROW_HEIGHT = 56
 local AV_SIZE = 32
 
--- --- تخطيط تبويب PLAYERS (يتمدد ليعرض القائمة كاملة) ---
 local PLAYERS_LIST_TOP = 8
 local PLAYERS_GAP = 8
+local LIST_HEADER_HEIGHT = 34
+local MAX_LIST_HEIGHT = 150
 local TELEPORT_BTN_HEIGHT = 34
 local CONTROLS_BAR_HEIGHT = 68
+local ESP_BAR_HEIGHT = 68
 local BOTTOM_PADDING = 10
 local MIN_LIST_HEIGHT = 90
+local listExpanded = false
 
--- --- نظام المشاهدة (Spectate) + المتابعة (Follow) ---
 local Camera = Workspace.CurrentCamera
 local spectating = false
 local spectateCharConn = nil
 local following = false
 local followConn = nil
-local FOLLOW_OFFSET = Vector3.new(0, 5, 12) -- خلف وأعلى اللاعب المستهدف
-local spectateToggle -- forward declare
-local followToggle   -- forward declare
-local spectateLabel  -- forward declare
-local followLabel    -- forward declare
+local FOLLOW_OFFSET = Vector3.new(0, 5, 12)
+local spectateToggle
+local followToggle
+local spectateLabel
+local followLabel
+
+local espSelectedOn = false
+local espSelectedHighlight = nil
+local espSelectedCharConn = nil
+local espAllOn = false
+local espAllHighlights = {}
+local espAllConns = {}
+local espAllPlayerAddedConn = nil
+local espSelectedToggle
+local espAllToggle
+local espSelectedLabel
+local espAllLabel
 
 local function formatDuration(totalSeconds)
     totalSeconds = math.max(0, math.floor(totalSeconds))
@@ -574,6 +569,18 @@ local function refreshControlsLabels()
         else
             followLabel.Text = "FOLLOW • " .. (selectedPlayer and selectedPlayer.Name or "")
         end
+    end
+    if espSelectedLabel then
+        if not selectedPlayer then
+            espSelectedLabel.Text = "SELECT A PLAYER"
+        elseif espSelectedOn then
+            espSelectedLabel.Text = "ESP ON • " .. selectedPlayer.Name
+        else
+            espSelectedLabel.Text = "ESP • " .. selectedPlayer.Name
+        end
+    end
+    if espAllLabel then
+        espAllLabel.Text = espAllOn and "ESP ALL • ON" or "ESP • ALL PLAYERS"
     end
 end
 
@@ -626,7 +633,6 @@ local function startFollow()
         if followToggle then followToggle.Set(false, false) end
         return
     end
-    -- المتابعة (كاميرا مقفولة) تلغي المشاهدة الناعمة تلقائيًا لتفادي تضارب الكاميرا
     if spectating then stopSpectate(false) end
 
     Camera = Workspace.CurrentCamera
@@ -675,7 +681,130 @@ task.spawn(function()
     end
 end)
 
--- --- زر Toggle احترافي (سويتش) ---
+local function makeESPHighlight(character)
+    local hl = Instance.new("Highlight")
+    hl.FillColor = Color3.fromRGB(255,255,255)
+    hl.FillTransparency = 0.65
+    hl.OutlineColor = Color3.fromRGB(255,255,255)
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = character
+
+    task.spawn(function()
+        while hl.Parent do
+            local t1 = TweenService:Create(hl, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {FillTransparency = 0.85})
+            t1:Play()
+            t1.Completed:Wait()
+            if not hl.Parent then break end
+            local t2 = TweenService:Create(hl, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {FillTransparency = 0.5})
+            t2:Play()
+            t2.Completed:Wait()
+        end
+    end)
+
+    return hl
+end
+
+local function disconnectESPSelectedConn()
+    if espSelectedCharConn then
+        espSelectedCharConn:Disconnect()
+        espSelectedCharConn = nil
+    end
+end
+
+local function destroyESPSelectedHighlight()
+    if espSelectedHighlight then
+        espSelectedHighlight:Destroy()
+        espSelectedHighlight = nil
+    end
+end
+
+local function attachESPSelected(plr)
+    disconnectESPSelectedConn()
+    destroyESPSelectedHighlight()
+    if not plr then return end
+    if plr.Character then
+        espSelectedHighlight = makeESPHighlight(plr.Character)
+    end
+    espSelectedCharConn = plr.CharacterAdded:Connect(function(char)
+        destroyESPSelectedHighlight()
+        espSelectedHighlight = makeESPHighlight(char)
+    end)
+end
+
+local function startESPSelected()
+    if not selectedPlayer then
+        if espSelectedToggle then espSelectedToggle.Set(false, false) end
+        return
+    end
+    espSelectedOn = true
+    attachESPSelected(selectedPlayer)
+    refreshControlsLabels()
+end
+
+local function stopESPSelected()
+    espSelectedOn = false
+    disconnectESPSelectedConn()
+    destroyESPSelectedHighlight()
+    if espSelectedToggle then espSelectedToggle.Set(false, true) end
+    refreshControlsLabels()
+end
+
+local function makeAllESPFor(plr)
+    if not plr.Character then return end
+    if espAllHighlights[plr] then
+        espAllHighlights[plr]:Destroy()
+    end
+    espAllHighlights[plr] = makeESPHighlight(plr.Character)
+end
+
+local function attachESPAllConn(plr)
+    if espAllConns[plr] then
+        espAllConns[plr]:Disconnect()
+    end
+    espAllConns[plr] = plr.CharacterAdded:Connect(function(char)
+        if espAllHighlights[plr] then
+            espAllHighlights[plr]:Destroy()
+        end
+        espAllHighlights[plr] = makeESPHighlight(char)
+    end)
+end
+
+local function startESPAll()
+    espAllOn = true
+    for _, plr in ipairs(Players:GetPlayers()) do
+        makeAllESPFor(plr)
+        attachESPAllConn(plr)
+    end
+    espAllPlayerAddedConn = Players.PlayerAdded:Connect(function(plr)
+        if espAllOn then
+            attachESPAllConn(plr)
+            if plr.Character then
+                makeAllESPFor(plr)
+            end
+        end
+    end)
+    refreshControlsLabels()
+end
+
+local function stopESPAll()
+    espAllOn = false
+    if espAllPlayerAddedConn then
+        espAllPlayerAddedConn:Disconnect()
+        espAllPlayerAddedConn = nil
+    end
+    for _, hl in pairs(espAllHighlights) do
+        hl:Destroy()
+    end
+    espAllHighlights = {}
+    for _, conn in pairs(espAllConns) do
+        conn:Disconnect()
+    end
+    espAllConns = {}
+    if espAllToggle then espAllToggle.Set(false, true) end
+    refreshControlsLabels()
+end
+
 local function createToggleSwitch(parent, pos, onChanged)
     local state = false
 
@@ -741,10 +870,50 @@ local function createToggleSwitch(parent, pos, onChanged)
     }
 end
 
--- --- قائمة اللاعبين (سكرول) ---
+local listHeader = Instance.new("TextButton")
+listHeader.Size = UDim2.new(1, -20, 0, LIST_HEADER_HEIGHT)
+listHeader.Position = UDim2.fromOffset(10, PLAYERS_LIST_TOP)
+listHeader.BackgroundColor3 = Color3.fromRGB(27,27,32)
+listHeader.AutoButtonColor = false
+listHeader.Text = ""
+listHeader.Parent = PlayersTab
+
+local listHeaderCorner = Instance.new("UICorner")
+listHeaderCorner.CornerRadius = UDim.new(0, 10)
+listHeaderCorner.Parent = listHeader
+
+local listHeaderStroke = Instance.new("UIStroke")
+listHeaderStroke.Thickness = 1
+listHeaderStroke.Color = Color3.fromRGB(255,255,255)
+listHeaderStroke.Transparency = 0.85
+listHeaderStroke.Parent = listHeader
+
+local listHeaderText = Instance.new("TextLabel")
+listHeaderText.BackgroundTransparency = 1
+listHeaderText.Position = UDim2.fromOffset(12, 0)
+listHeaderText.Size = UDim2.new(1, -46, 1, 0)
+listHeaderText.Font = Enum.Font.GothamBold
+listHeaderText.TextSize = 11
+listHeaderText.TextColor3 = Color3.fromRGB(255,255,255)
+listHeaderText.TextXAlignment = Enum.TextXAlignment.Left
+listHeaderText.TextTruncate = Enum.TextTruncate.AtEnd
+listHeaderText.Text = "SELECT A PLAYER"
+listHeaderText.Parent = listHeader
+
+local listHeaderChevron = Instance.new("TextLabel")
+listHeaderChevron.BackgroundTransparency = 1
+listHeaderChevron.AnchorPoint = Vector2.new(1, 0.5)
+listHeaderChevron.Position = UDim2.new(1, -12, 0.5, 0)
+listHeaderChevron.Size = UDim2.fromOffset(20, 20)
+listHeaderChevron.Font = Enum.Font.GothamBold
+listHeaderChevron.TextSize = 14
+listHeaderChevron.TextColor3 = Color3.fromRGB(150,150,160)
+listHeaderChevron.Text = "v"
+listHeaderChevron.Parent = listHeader
+
 local playersList = Instance.new("ScrollingFrame")
-playersList.Size = UDim2.new(1, -20, 0, 150)
-playersList.Position = UDim2.fromOffset(10, PLAYERS_LIST_TOP)
+playersList.Size = UDim2.new(1, -20, 0, 0)
+playersList.Position = UDim2.fromOffset(10, PLAYERS_LIST_TOP + LIST_HEADER_HEIGHT + PLAYERS_GAP)
 playersList.BackgroundTransparency = 1
 playersList.BorderSizePixel = 0
 playersList.ScrollBarThickness = 3
@@ -752,6 +921,7 @@ playersList.ScrollBarImageColor3 = Color3.fromRGB(90,90,100)
 playersList.ScrollingDirection = Enum.ScrollingDirection.Y
 playersList.CanvasSize = UDim2.new(0, 0, 0, 0)
 playersList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+playersList.Visible = false
 playersList.Parent = PlayersTab
 
 local listLayout = Instance.new("UIListLayout")
@@ -759,10 +929,9 @@ listLayout.Padding = UDim.new(0, 5)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = playersList
 
--- --- زر الانتقال (ضغطة وحدة) ---
-local teleportBtn = createActionButton(PlayersTab, 166, "TELEPORT TO PLAYER", Color3.fromRGB(120,160,255))
+local teleportBtn = createActionButton(PlayersTab, 58, "TELEPORT TO PLAYER", Color3.fromRGB(120,160,255))
 teleportBtn.Size = UDim2.new(1, -20, 0, 34)
-teleportBtn.Position = UDim2.fromOffset(10, 166)
+teleportBtn.Position = UDim2.fromOffset(10, 58)
 
 bindAction(teleportBtn, function()
     assert(selectedPlayer, "no selection")
@@ -775,10 +944,9 @@ bindAction(teleportBtn, function()
     myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 4)
 end)
 
--- --- شريط التحكم (Spectate + Follow) ---
 local controlsBar = Instance.new("Frame")
 controlsBar.Size = UDim2.new(1, -20, 0, CONTROLS_BAR_HEIGHT)
-controlsBar.Position = UDim2.fromOffset(10, 208)
+controlsBar.Position = UDim2.fromOffset(10, 100)
 controlsBar.BackgroundColor3 = Color3.fromRGB(27,27,32)
 controlsBar.BorderSizePixel = 0
 controlsBar.Parent = PlayersTab
@@ -801,7 +969,6 @@ controlsDivider.BackgroundTransparency = 0.92
 controlsDivider.BorderSizePixel = 0
 controlsDivider.Parent = controlsBar
 
--- صف Spectate
 spectateLabel = Instance.new("TextLabel")
 spectateLabel.BackgroundTransparency = 1
 spectateLabel.Position = UDim2.fromOffset(12, 3)
@@ -826,7 +993,6 @@ spectateToggle = createToggleSwitch(controlsBar, UDim2.new(1, -54, 0, 5), functi
     end
 end)
 
--- صف Follow
 followLabel = Instance.new("TextLabel")
 followLabel.BackgroundTransparency = 1
 followLabel.Position = UDim2.fromOffset(12, 37)
@@ -851,37 +1017,133 @@ followToggle = createToggleSwitch(controlsBar, UDim2.new(1, -54, 0, 39), functio
     end
 end)
 
--- --- تخطيط تبويب PLAYERS الديناميكي (يعرض القائمة كاملة قدر الإمكان) ---
+local espBar = Instance.new("Frame")
+espBar.Size = UDim2.new(1, -20, 0, ESP_BAR_HEIGHT)
+espBar.Position = UDim2.fromOffset(10, 176)
+espBar.BackgroundColor3 = Color3.fromRGB(27,27,32)
+espBar.BorderSizePixel = 0
+espBar.Parent = PlayersTab
+
+local espBarCorner = Instance.new("UICorner")
+espBarCorner.CornerRadius = UDim.new(0, 10)
+espBarCorner.Parent = espBar
+
+local espBarStroke = Instance.new("UIStroke")
+espBarStroke.Thickness = 1
+espBarStroke.Color = Color3.fromRGB(255,255,255)
+espBarStroke.Transparency = 0.85
+espBarStroke.Parent = espBar
+
+local espDivider = Instance.new("Frame")
+espDivider.Size = UDim2.new(1, -24, 0, 1)
+espDivider.Position = UDim2.fromOffset(12, 33)
+espDivider.BackgroundColor3 = Color3.fromRGB(255,255,255)
+espDivider.BackgroundTransparency = 0.92
+espDivider.BorderSizePixel = 0
+espDivider.Parent = espBar
+
+espSelectedLabel = Instance.new("TextLabel")
+espSelectedLabel.BackgroundTransparency = 1
+espSelectedLabel.Position = UDim2.fromOffset(12, 3)
+espSelectedLabel.Size = UDim2.fromOffset(155, 24)
+espSelectedLabel.Font = Enum.Font.GothamBold
+espSelectedLabel.TextSize = 10
+espSelectedLabel.TextColor3 = Color3.fromRGB(150,150,160)
+espSelectedLabel.TextXAlignment = Enum.TextXAlignment.Left
+espSelectedLabel.TextTruncate = Enum.TextTruncate.AtEnd
+espSelectedLabel.Text = "SELECT A PLAYER"
+espSelectedLabel.Parent = espBar
+
+espSelectedToggle = createToggleSwitch(espBar, UDim2.new(1, -54, 0, 5), function(state)
+    if state then
+        if not selectedPlayer then
+            espSelectedToggle.Set(false, false)
+            return
+        end
+        startESPSelected()
+    else
+        stopESPSelected()
+    end
+end)
+
+espAllLabel = Instance.new("TextLabel")
+espAllLabel.BackgroundTransparency = 1
+espAllLabel.Position = UDim2.fromOffset(12, 37)
+espAllLabel.Size = UDim2.fromOffset(155, 24)
+espAllLabel.Font = Enum.Font.GothamBold
+espAllLabel.TextSize = 10
+espAllLabel.TextColor3 = Color3.fromRGB(150,150,160)
+espAllLabel.TextXAlignment = Enum.TextXAlignment.Left
+espAllLabel.TextTruncate = Enum.TextTruncate.AtEnd
+espAllLabel.Text = "ESP • ALL PLAYERS"
+espAllLabel.Parent = espBar
+
+espAllToggle = createToggleSwitch(espBar, UDim2.new(1, -54, 0, 39), function(state)
+    if state then
+        startESPAll()
+    else
+        stopESPAll()
+    end
+end)
+
 local function computePlayersLayout()
     local rows = 0
     for _ in pairs(playerRows) do rows += 1 end
     if rows < 1 then rows = 1 end
 
     local rowsHeight = rows * ROW_HEIGHT + math.max(0, rows - 1) * 5
-    local chromeHeight = PLAYERS_LIST_TOP + PLAYERS_GAP + TELEPORT_BTN_HEIGHT + PLAYERS_GAP + CONTROLS_BAR_HEIGHT + BOTTOM_PADDING
-    local wantedCardHeight = CONTENT_TOP + chromeHeight + math.max(MIN_LIST_HEIGHT, rowsHeight)
-    local cardHeight = math.clamp(wantedCardHeight, BASE_CARD_HEIGHT, MAX_CARD_HEIGHT)
-    local listHeight = cardHeight - CONTENT_TOP - chromeHeight
+    local listHeight = 0
+    if listExpanded then
+        listHeight = math.clamp(rowsHeight, MIN_LIST_HEIGHT, MAX_LIST_HEIGHT)
+    end
 
-    return cardHeight, listHeight
+    local headerY = PLAYERS_LIST_TOP
+    local listY = headerY + LIST_HEADER_HEIGHT + PLAYERS_GAP
+    local teleportY = listY + listHeight + PLAYERS_GAP
+    local controlsY = teleportY + TELEPORT_BTN_HEIGHT + PLAYERS_GAP
+    local espY = controlsY + CONTROLS_BAR_HEIGHT + PLAYERS_GAP
+    local cardHeight = math.clamp(CONTENT_TOP + espY + ESP_BAR_HEIGHT + BOTTOM_PADDING, BASE_CARD_HEIGHT, MAX_CARD_HEIGHT)
+
+    return cardHeight, listHeight, headerY, listY, teleportY, controlsY, espY
 end
 
 local function applyPlayersLayout(animated)
-    local cardHeight, listHeight = computePlayersLayout()
-    local teleportY = PLAYERS_LIST_TOP + listHeight + PLAYERS_GAP
-    local controlsY = teleportY + TELEPORT_BTN_HEIGHT + PLAYERS_GAP
-
+    local cardHeight, listHeight, headerY, listY, teleportY, controlsY, espY = computePlayersLayout()
     local ti = TweenInfo.new(animated and 0.28 or 0, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    TweenService:Create(playersList, ti, {Size = UDim2.new(1, -20, 0, listHeight)}):Play()
+
+    TweenService:Create(listHeader, ti, {Position = UDim2.fromOffset(10, headerY)}):Play()
+
+    if listHeight > 0 then
+        playersList.Visible = true
+    end
+    local listTween = TweenService:Create(playersList, ti, {
+        Position = UDim2.fromOffset(10, listY),
+        Size = UDim2.new(1, -20, 0, listHeight),
+    })
+    listTween:Play()
+    listTween.Completed:Connect(function()
+        playersList.Visible = listHeight > 0
+    end)
+
     TweenService:Create(teleportBtn, ti, {Position = UDim2.fromOffset(10, teleportY)}):Play()
     TweenService:Create(controlsBar, ti, {Position = UDim2.fromOffset(10, controlsY)}):Play()
+    TweenService:Create(espBar, ti, {Position = UDim2.fromOffset(10, espY)}):Play()
 
     if currentTab == "players" then
         TweenService:Create(card, ti, {Size = UDim2.fromOffset(CARD_WIDTH, cardHeight)}):Play()
     end
 end
 
--- --- تحديث شكل التحديد لكل الصفوف ---
+local function setListExpanded(expanded, animated)
+    listExpanded = expanded
+    listHeaderChevron.Text = expanded and "^" or "v"
+    applyPlayersLayout(animated ~= false)
+end
+
+listHeader.MouseButton1Click:Connect(function()
+    setListExpanded(not listExpanded, true)
+end)
+
 local function updateSelectionVisuals()
     for p, data in pairs(playerRows) do
         local isSel = (p == selectedPlayer)
@@ -909,9 +1171,15 @@ local function updateSelectionVisuals()
                 applySpectateSubject(selectedPlayer)
             end)
         end
+        if espSelectedOn then
+            attachESPSelected(selectedPlayer)
+        end
     else
         stopSpectate(false)
         stopFollow(false)
+        if espSelectedOn then
+            stopESPSelected()
+        end
     end
     refreshControlsLabels()
 end
@@ -922,10 +1190,13 @@ local function selectPlayer(plr)
     else
         selectedPlayer = plr
     end
+    listHeaderText.Text = selectedPlayer and selectedPlayer.DisplayName or "SELECT A PLAYER"
     updateSelectionVisuals()
+    if selectedPlayer then
+        setListExpanded(false, true)
+    end
 end
 
--- --- إنشاء صف لاعب واحد ---
 local function createPlayerRow(plr)
     rowCounter += 1
 
@@ -953,7 +1224,6 @@ local function createPlayerRow(plr)
     rowShadow.Offset = UDim2.fromOffset(0, 2)
     rowShadow.Parent = row
 
-    -- شريط تمييز على اليسار عند التحديد
     local accentBar = Instance.new("Frame")
     accentBar.Size = UDim2.new(0, 3, 1, 0)
     accentBar.Position = UDim2.fromOffset(0, 0)
@@ -1029,7 +1299,6 @@ local function createPlayerRow(plr)
     uName.Text = "@" .. plr.Name
     uName.Parent = row
 
-    -- ===== معلومات إضافية: عمر الحساب + مدة التواجد بالسيرفر =====
     local extraInfo = Instance.new("TextLabel")
     extraInfo.Name = "ExtraInfo"
     extraInfo.BackgroundTransparency = 1
@@ -1043,7 +1312,6 @@ local function createPlayerRow(plr)
     extraInfo.Text = "Age: " .. tostring(plr.AccountAge) .. "d"
     extraInfo.Parent = row
 
-    -- شارة "YOU"
     if plr == player then
         local youBadge = Instance.new("Frame")
         youBadge.Size = UDim2.fromOffset(28, 13)
@@ -1107,7 +1375,6 @@ local function addPlayerRow(plr)
     applyPlayersLayout(currentTab == "players")
 end
 
--- تعبئة اللاعبين الحاليين + الاستماع للدخول/الخروج
 for _, p in ipairs(Players:GetPlayers()) do
     createPlayerRow(p)
 end
@@ -1120,14 +1387,22 @@ Players.PlayerRemoving:Connect(function(p)
         data.Frame:Destroy()
         playerRows[p] = nil
     end
+    if espAllHighlights[p] then
+        espAllHighlights[p]:Destroy()
+        espAllHighlights[p] = nil
+    end
+    if espAllConns[p] then
+        espAllConns[p]:Disconnect()
+        espAllConns[p] = nil
+    end
     if selectedPlayer == p then
         selectedPlayer = nil
+        listHeaderText.Text = "SELECT A PLAYER"
         updateSelectionVisuals()
     end
     applyPlayersLayout(currentTab == "players")
 end)
 
--- تحديث "عمر الحساب + مدة التواجد" كل ثانية لكل صف
 task.spawn(function()
     while card.Parent do
         for _, data in pairs(playerRows) do
@@ -1137,7 +1412,6 @@ task.spawn(function()
     end
 end)
 
--- ===== بينق مطابق للرسمي =====
 task.spawn(function()
     local networkStats = Stats.Network
     local longSum, longCount = 0, 0
@@ -1171,7 +1445,6 @@ task.spawn(function()
     end
 end)
 
--- ===== FPS =====
 do
     local frames = 0
     local elapsed = 0
@@ -1201,7 +1474,6 @@ do
     end)
 end
 
--- ===== مؤقت الجلسة =====
 task.spawn(function()
     local startTime = os.clock()
     while card.Parent do
@@ -1214,7 +1486,6 @@ task.spawn(function()
     end
 end)
 
--- ===== الساعة =====
 task.spawn(function()
     while card.Parent do
         local now = DateTime.now():ToLocalTime()
@@ -1225,7 +1496,6 @@ task.spawn(function()
     end
 end)
 
--- ===== منطق تبديل التبويبات (3 تبويبات) =====
 currentTab = "player"
 local tabOrder = {"player", "players", "server"}
 local tabPanels = {player = PlayerTab, players = PlayersTab, server = ServerTab}
@@ -1268,7 +1538,6 @@ tabBtnPlayer.MouseButton1Click:Connect(function() switchTab("player") end)
 tabBtnPlayers.MouseButton1Click:Connect(function() switchTab("players") end)
 tabBtnServer.MouseButton1Click:Connect(function() switchTab("server") end)
 
--- ===== سحب البطاقة =====
 do
     local dragging = false
     local dragStart, startPos
@@ -1300,7 +1569,6 @@ do
     end)
 end
 
--- ===== زر التحكم (فتح / إغلاق) =====
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Name = "ToggleButton"
 toggleBtn.Text = ""
@@ -1411,7 +1679,6 @@ toggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ===== أنيميشن الظهور الأولي =====
 card.Size = UDim2.fromOffset(CARD_WIDTH, 0)
 card.BackgroundTransparency = 1
 TweenService:Create(card, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
@@ -1419,119 +1686,7 @@ TweenService:Create(card, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingD
     BackgroundTransparency = 0,
 }):Play()
 
--- تهيئة تخطيط تبويب اللاعبين من البداية (بدون تحريك الكرت لأنه غير مفتوح على هذا التبويب)
 applyPlayersLayout(false)
-
-
-
-
-task.spawn(function()
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-
-local highlights = {}
-local tracers = {}
-
-local function createHighlight(player, character)
-    if highlights[player] then highlights[player]:Destroy() end
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
-    highlight.FillColor = Color3.fromRGB(255, 255, 255)
-    highlight.FillTransparency = 0.75
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.OutlineTransparency = 0.5
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Adornee = character
-    highlight.Parent = character
-    
-    highlights[player] = highlight
-end
-
-local function createTracer(player)
-    if tracers[player] then tracers[player]:Remove() end
-    
-    local tracer = Drawing.new("Line")
-    tracer.Visible = false
-    tracer.Color = Color3.fromRGB(255, 255, 255)
-    tracer.Thickness = 1
-    tracer.Transparency = 0.25
-    
-    tracers[player] = tracer
-end
-
-local function setupPlayer(player)
-    if player == LocalPlayer then return end
-    
-    createTracer(player)
-    
-    if player.Character then
-        createHighlight(player, player.Character)
-    end
-    
-    player.CharacterAdded:Connect(function(character)
-        createHighlight(player, character)
-    end)
-end
-
-local function removePlayer(player)
-    if highlights[player] then
-        highlights[player]:Destroy()
-        highlights[player] = nil
-    end
-    if tracers[player] then
-        tracers[player]:Remove()
-        tracers[player] = nil
-    end
-end
-
-RunService.RenderStepped:Connect(function()
-    local camera = workspace.CurrentCamera
-    local time = tick() * 3
-    local pulse = (math.sin(time) + 1) / 2
-    
-    local colorValue = 180 + (pulse * 75)
-    local animatedColor = Color3.fromRGB(colorValue, colorValue, colorValue)
-    
-    local fillTransparencyPulse = 0.65 + (pulse * 0.25)
-    local outlineTransparencyPulse = 0.3 + (pulse * 0.4)
-
-    for _, highlight in pairs(highlights) do
-        if highlight and highlight.Parent then
-            highlight.FillTransparency = fillTransparencyPulse
-            highlight.OutlineTransparency = outlineTransparencyPulse
-        end
-    end
-    
-    for player, tracer in pairs(tracers) do
-        local char = player.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChild("Humanoid")
-        
-        if root and hum and hum.Health > 0 then
-            local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
-            if onScreen then
-                tracer.From = Vector2.new(camera.ViewportSize.X / 2, 0)
-                tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-                tracer.Color = animatedColor
-                tracer.Visible = true
-            else
-                tracer.Visible = false
-            end
-        else
-            tracer.Visible = false
-        end
-    end
-end)
-
-for _, player in ipairs(Players:GetPlayers()) do
-    setupPlayer(player)
-end
-
-Players.PlayerAdded:Connect(setupPlayer)
-Players.PlayerRemoving:Connect(removePlayer)
-end)
 
 
 task.spawn(function()
