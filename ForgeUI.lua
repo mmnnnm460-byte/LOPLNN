@@ -190,7 +190,7 @@ function ForgeUI:CreateWindow(config)
     config = config or {}
     local title = config.Title or "ForgeUI"
     local subtitle = config.SubTitle or ""
-    local size = config.Size or UDim2.fromOffset(560, 400)
+    local size = config.Size or UDim2.fromOffset(480, 340) -- تم تصغير الحجم الافتراضي للواجهة
     local configFolder = config.ConfigFolder or "ForgeUI"
     local toggleKey = config.ToggleKeybind or Enum.KeyCode.RightControl
 
@@ -266,11 +266,12 @@ function ForgeUI:CreateWindow(config)
         textStartX = 48
     end
 
+    -- المساحة المحجوزة صارت أكبر (110 بدل 76) عشان تستوعب زر النقل الجديد جنب X والـ Minimize
     New("TextLabel", {
         Name = "Title",
         BackgroundTransparency = 1,
         Position = UDim2.new(0, textStartX, 0, 5),
-        Size = UDim2.new(1, -(textStartX + 76), 0, 20),
+        Size = UDim2.new(1, -(textStartX + 110), 0, 20),
         Font = Theme.FontBold,
         Text = title,
         TextColor3 = Theme.Text,
@@ -283,7 +284,7 @@ function ForgeUI:CreateWindow(config)
         Name = "SubTitle",
         BackgroundTransparency = 1,
         Position = UDim2.new(0, textStartX, 0, 23),
-        Size = UDim2.new(1, -(textStartX + 76), 0, 16),
+        Size = UDim2.new(1, -(textStartX + 110), 0, 16),
         Font = Theme.Font,
         Text = subtitle,
         TextColor3 = Theme.SubText,
@@ -292,6 +293,15 @@ function ForgeUI:CreateWindow(config)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = TopBar,
     })
+
+    -- تم نقل تعريف Window لهنا (بدل الأسفل) عشان أزرار التوب بار الجديدة تقدر تستخدم Window:SaveConfig/LoadConfig
+    local Window = {}
+    Window.ScreenGui = ScreenGui
+    Window.Tabs = {}
+    Window.Flags = {}
+    Window.ConfigFolder = configFolder
+    Window._closeActivePopup = nil
+    local firstTab = true
 
     -- ===== بوب أب تأكيد حذف المكتبة =====
     local ConfirmOverlay = New("Frame", {
@@ -411,6 +421,147 @@ function ForgeUI:CreateWindow(config)
         Tween(MinimizeBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText }, 0.15)
     end)
 
+    -- ===== زر نقل/حفظ الإعدادات (جنب X) - يتحول لـ "+" عند الفتح =====
+    local TransferBtn = New("TextButton", {
+        BackgroundColor3 = Theme.Elevated,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -80, 0.5, 0),
+        Size = UDim2.new(0, 26, 0, 26),
+        Font = Theme.FontBold,
+        Text = "⇄",
+        TextColor3 = Theme.SubText,
+        TextSize = 14,
+        Parent = TopBar,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = TransferBtn })
+    TransferBtn.MouseEnter:Connect(function()
+        Tween(TransferBtn, { BackgroundColor3 = Theme.Stroke, TextColor3 = Theme.Text }, 0.15)
+    end)
+    TransferBtn.MouseLeave:Connect(function()
+        Tween(TransferBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText }, 0.15)
+    end)
+
+    local TransferOverlay = New("Frame", {
+        Name = "TransferOverlay",
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Visible = false,
+        ZIndex = 50,
+        Parent = Main,
+    })
+    local TransferBox = New("Frame", {
+        BackgroundColor3 = Theme.Container,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 260, 0, 168),
+        ZIndex = 51,
+        Parent = TransferOverlay,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 10), Parent = TransferBox })
+    New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = TransferBox })
+    New("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 16, 0, 14),
+        Size = UDim2.new(1, -32, 0, 18),
+        Font = Theme.FontBold,
+        Text = "نقل الإعدادات",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 52,
+        Parent = TransferBox,
+    })
+    local TransferNameBox = New("TextBox", {
+        BackgroundColor3 = Theme.Elevated,
+        Position = UDim2.new(0, 16, 0, 40),
+        Size = UDim2.new(1, -32, 0, 30),
+        Font = Theme.Font,
+        PlaceholderText = "اسم الإعداد",
+        Text = "config",
+        TextColor3 = Theme.Text,
+        TextSize = 13,
+        ClearTextOnFocus = false,
+        ZIndex = 52,
+        Parent = TransferBox,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = TransferNameBox })
+    New("UIPadding", { PaddingLeft = UDim.new(0, 8), Parent = TransferNameBox })
+    local TransferStatus = New("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 16, 0, 76),
+        Size = UDim2.new(1, -32, 0, 16),
+        Font = Theme.Font,
+        Text = "",
+        TextColor3 = Theme.SubText,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 52,
+        Parent = TransferBox,
+    })
+    local SaveCfgBtn = New("TextButton", {
+        BackgroundColor3 = Theme.Accent,
+        Position = UDim2.new(0, 16, 1, -46),
+        Size = UDim2.new(0, 106, 0, 30),
+        Font = Theme.FontBold,
+        Text = "حفظ",
+        TextColor3 = Theme.Text,
+        TextSize = 13,
+        ZIndex = 52,
+        Parent = TransferBox,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = SaveCfgBtn })
+    local LoadCfgBtn = New("TextButton", {
+        BackgroundColor3 = Theme.Elevated,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, -16, 1, -46),
+        Size = UDim2.new(0, 106, 0, 30),
+        Font = Theme.FontBold,
+        Text = "تحميل",
+        TextColor3 = Theme.Text,
+        TextSize = 13,
+        ZIndex = 52,
+        Parent = TransferBox,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = LoadCfgBtn })
+
+    SaveCfgBtn.MouseEnter:Connect(function() Tween(SaveCfgBtn, { BackgroundColor3 = Color3.fromRGB(140, 150, 255) }, 0.15) end)
+    SaveCfgBtn.MouseLeave:Connect(function() Tween(SaveCfgBtn, { BackgroundColor3 = Theme.Accent }, 0.15) end)
+    LoadCfgBtn.MouseEnter:Connect(function() Tween(LoadCfgBtn, { BackgroundColor3 = Theme.Stroke }, 0.15) end)
+    LoadCfgBtn.MouseLeave:Connect(function() Tween(LoadCfgBtn, { BackgroundColor3 = Theme.Elevated }, 0.15) end)
+
+    SaveCfgBtn.MouseButton1Click:Connect(function()
+        Window:SaveConfig(TransferNameBox.Text)
+        TransferStatus.Text = "تم الحفظ ✓"
+    end)
+    LoadCfgBtn.MouseButton1Click:Connect(function()
+        Window:LoadConfig(TransferNameBox.Text)
+        TransferStatus.Text = "تم التحميل ✓"
+    end)
+
+    local transferOpen = false
+    local function closeTransfer()
+        if transferOpen then
+            transferOpen = false
+            TransferBtn.Text = "⇄"
+            TransferStatus.Text = ""
+            Tween(TransferOverlay, { BackgroundTransparency = 1 }, 0.15)
+            task.delay(0.15, function()
+                TransferOverlay.Visible = false
+            end)
+        end
+    end
+    TransferBtn.MouseButton1Click:Connect(function()
+        if transferOpen then
+            closeTransfer()
+        else
+            transferOpen = true
+            TransferBtn.Text = "+"
+            TransferOverlay.Visible = true
+            Tween(TransferOverlay, { BackgroundTransparency = 0.4 }, 0.15)
+        end
+    end)
+
     MakeDraggable(TopBar, Main)
 
     local TabBar = New("Frame", {
@@ -438,6 +589,15 @@ function ForgeUI:CreateWindow(config)
         Parent = Main,
     })
 
+    -- خط فاصل رفيع بين قائمة التابات والصفحات (لمسة تصميم إضافية)
+    New("Frame", {
+        Name = "Divider",
+        BackgroundColor3 = Theme.Stroke,
+        Position = UDim2.new(0, 130, 0, 44),
+        Size = UDim2.new(0, 1, 1, -44),
+        Parent = Main,
+    })
+
     local minimized = false
     MinimizeBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
@@ -456,14 +616,6 @@ function ForgeUI:CreateWindow(config)
             ScreenGui.Enabled = not ScreenGui.Enabled
         end
     end)
-
-    local Window = {}
-    Window.ScreenGui = ScreenGui
-    Window.Tabs = {}
-    Window.Flags = {}
-    Window.ConfigFolder = configFolder
-    Window._closeActivePopup = nil
-    local firstTab = true
 
     function Window:CreateTab(cfg)
         if type(cfg) == "string" then
@@ -604,6 +756,7 @@ function ForgeUI:CreateWindow(config)
                 return Btn
             end
 
+            -- ===== Toggle: تصميم جديد أكثر واقعية واحترافية =====
             function SectionObj:CreateToggle(cfg)
                 cfg = cfg or {}
                 local state = cfg.Default or false
@@ -611,7 +764,7 @@ function ForgeUI:CreateWindow(config)
                 New("TextLabel", {
                     BackgroundTransparency = 1,
                     Position = UDim2.new(0, 12, 0, 0),
-                    Size = UDim2.new(1, -60, 1, 0),
+                    Size = UDim2.new(1, -64, 1, 0),
                     Font = Theme.Font,
                     Text = cfg.Name or "Toggle",
                     TextColor3 = Theme.Text,
@@ -619,31 +772,76 @@ function ForgeUI:CreateWindow(config)
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = Card,
                 })
+
+                local OFF_POS = UDim2.new(0, 3, 0.5, -9)
+                local ON_POS = UDim2.new(1, -21, 0.5, -9)
+                local DOT_SIZE = UDim2.new(0, 18, 0, 18)
+                local DOT_PRESS_SIZE = UDim2.new(0, 23, 0, 18)
+
                 local Switch = New("Frame", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, -12, 0.5, 0),
-                    Size = UDim2.new(0, 38, 0, 20),
+                    Size = UDim2.new(0, 42, 0, 24),
                     BackgroundColor3 = state and Theme.Accent or Theme.Elevated,
                     Parent = Card,
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Switch })
+                New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Transparency = 0.3, Parent = Switch })
+
+                -- تدرج بسيط يعطي إحساس تجويف داخلي خفيف للمسار
+                New("UIGradient", {
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+                    }),
+                    Transparency = NumberSequence.new({
+                        NumberSequenceKeypoint.new(0, 0.88),
+                        NumberSequenceKeypoint.new(1, 1),
+                    }),
+                    Rotation = 90,
+                    Parent = Switch,
+                })
+
                 local Dot = New("Frame", {
-                    Size = UDim2.new(0, 16, 0, 16),
-                    Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8),
+                    Size = DOT_SIZE,
+                    Position = state and ON_POS or OFF_POS,
                     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     Parent = Switch,
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Dot })
+                New("UIStroke", { Color = Color3.fromRGB(205, 205, 212), Thickness = 1, Transparency = 0.4, Parent = Dot })
+                -- ظل ناعم أسفل الدائرة (نفس مبدأ UIShadow المستخدم بالكارد الرئيسية) يعطيها إحساس أنها مرفوعة
+                pcall(function()
+                    New("UIShadow", {
+                        Color = Color3.fromRGB(0, 0, 0),
+                        Transparency = 0.65,
+                        BlurRadius = UDim.new(0, 5),
+                        Offset = UDim2.new(0, 0, 0, 1),
+                        Parent = Dot,
+                    })
+                end)
+
                 local Click = New("TextButton", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
                     Parent = Card,
                 })
+
+                Click.MouseButton1Down:Connect(function()
+                    Tween(Dot, { Size = DOT_PRESS_SIZE }, 0.08, Enum.EasingStyle.Quint)
+                end)
+                Click.MouseButton1Up:Connect(function()
+                    Tween(Dot, { Size = DOT_SIZE }, 0.12, Enum.EasingStyle.Quint)
+                end)
+
                 Click.MouseButton1Click:Connect(function()
                     state = not state
                     Tween(Switch, { BackgroundColor3 = state and Theme.Accent or Theme.Elevated }, 0.15)
-                    Tween(Dot, { Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8) }, 0.15)
+                    Tween(Dot, {
+                        Position = state and ON_POS or OFF_POS,
+                        Size = DOT_SIZE,
+                    }, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
                     if cfg.Flag then Window.Flags[cfg.Flag] = state end
                     if cfg.Callback then cfg.Callback(state) end
                 end)
@@ -653,7 +851,8 @@ function ForgeUI:CreateWindow(config)
                     Set = function(_, v)
                         state = v
                         Switch.BackgroundColor3 = state and Theme.Accent or Theme.Elevated
-                        Dot.Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                        Dot.Position = state and ON_POS or OFF_POS
+                        Dot.Size = DOT_SIZE
                     end
                 }
             end
