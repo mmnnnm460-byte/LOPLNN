@@ -11,6 +11,9 @@
     - أيقونة للنافذة (Icon) بجانب العنوان بدل ما تكون ملصوقة أو طايحة برا الإطار.
     - زر تصغير (Minimize) بجانب زر الإغلاق.
     - إصلاح تداخل القوائم المنسدلة و ColorPicker مع العناصر اللي تحتها.
+    - إصلاح: النافذة صارت CanvasGroup فعليًا تقص كل المحتوى على شكل الزوايا
+      الدائرية (مو مستطيل)، فما تطلع أي زاوية مربعة بارزة من طرف النافذة.
+    - إصلاح: حركة فتح النافذة ما تعود "تنتفخ" أكبر من حجمها الحقيقي.
 
     مثال استخدام سريع:
 
@@ -164,7 +167,7 @@ function ForgeUI:Notify(config)
 
     if not NotifHolder then return end
 
-    local card = New("Frame", {
+    local card = New("CanvasGroup", {
         BackgroundColor3 = Theme.Elevated,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 0),
@@ -174,35 +177,47 @@ function ForgeUI:Notify(config)
     })
     New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = card })
     New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = card })
-    New("UIPadding", {
-        PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10),
-        PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 12),
-        Parent = card,
-    })
+
+    -- شريط اللون: بار داخلي رفيع، بعيد عن أي UIPadding عشان يطلع نظيف وما ينضغط
     local accent = New("Frame", {
         BackgroundColor3 = barColor,
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 3, 1, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, 6, 0.5, 0),
+        Size = UDim2.new(0, 3, 1, -12),
         Parent = card,
     })
     New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = accent })
 
+    -- المحتوى النصي بإطار داخلي منفصل يحمل الـ UIPadding، عشان ما يأثر على شريط اللون
+    local inner = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = card,
+    })
+    New("UIPadding", {
+        PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10),
+        PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 12),
+        Parent = inner,
+    })
+
     local titleLabel = New("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 6, 0, 0),
-        Size = UDim2.new(1, -6, 0, 18),
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 18),
         Font = Theme.FontBold,
         Text = title,
         TextColor3 = Theme.Text,
         TextTransparency = 1,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = card,
+        Parent = inner,
     })
     local contentLabel = New("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 6, 0, 20),
-        Size = UDim2.new(1, -6, 0, 0),
+        Position = UDim2.new(0, 0, 0, 20),
+        Size = UDim2.new(1, 0, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         Font = Theme.Font,
         Text = content,
@@ -211,7 +226,7 @@ function ForgeUI:Notify(config)
         TextSize = 13,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = card,
+        Parent = inner,
     })
 
     Tween(card, { BackgroundTransparency = 0 }, 0.25)
@@ -254,12 +269,18 @@ function ForgeUI:CreateWindow(config)
     ProtectGui(ScreenGui)
     InitNotifications(ScreenGui)
 
-    local Main = New("Frame", {
+    -- حجم البداية: نفس نسب الهدف لكن بأوفست أصغر شوي (مو صفر) عشان حركة "تكبّر"
+    -- ناعمة بدون أن تتضخم النافذة مؤقتًا أكبر من المطلوب وتطلع خارج الشاشة.
+    local startSize = UDim2.new(size.X.Scale, size.X.Offset * 0.92, size.Y.Scale, size.Y.Offset * 0.92)
+
+    -- CanvasGroup مو Frame عادي: هذا يضمن إن كل محتوى النافذة يتقص فعليًا
+    -- على شكل الزوايا الدائرية بدل ما تطلع زاوية مربعة بارزة خارج إطار المكتبة.
+    local Main = New("CanvasGroup", {
         Name = "Main",
         BackgroundColor3 = Theme.Background,
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(size.X.Scale, 0, size.Y.Scale, 0),
+        Size = startSize,
         ClipsDescendants = true,
         Parent = ScreenGui,
     })
@@ -534,7 +555,10 @@ function ForgeUI:CreateWindow(config)
             local SectionObj = {}
 
             local function BaseCard(height)
-                local Card = New("Frame", {
+                -- CanvasGroup مو Frame عادي: هذا يضمن إن أي عنصر داخل الكرت
+                -- (صفوف الدروب داون، بوب أب اللون، إلخ) يتقص فعليًا على شكل
+                -- الزوايا الدائرية بدل ما يطلع ركن مربع بارز خارج حواف الكرت.
+                local Card = New("CanvasGroup", {
                     BackgroundColor3 = Theme.Container,
                     Size = UDim2.new(1, 0, 0, height or 38),
                     ClipsDescendants = true,
@@ -1122,7 +1146,7 @@ function ForgeUI:CreateWindow(config)
         ScreenGui:Destroy()
     end
 
-    Tween(Main, { Size = size }, 0.35, Enum.EasingStyle.Back)
+    Tween(Main, { Size = size }, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
     return Window
 end
