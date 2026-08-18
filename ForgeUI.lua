@@ -15,6 +15,7 @@
         Size = UDim2.fromOffset(580, 420),
         ConfigFolder = "MyHubConfig",
         ToggleKeybind = Enum.KeyCode.RightControl,
+        -- Theme = { Accent = Color3.fromRGB(255, 90, 90) }, -- اختياري: تخصيص الألوان
     })
 
     local Tab = Window:CreateTab("Main")
@@ -28,9 +29,11 @@
     Section:CreateKeybind({ Name = "Keybind", Default = Enum.KeyCode.E, Flag = "MyKey", Callback = function() end })
     Section:CreateColorPicker({ Name = "Color", Default = Color3.fromRGB(255,0,0), Flag = "MyColor", Callback = function(c) end })
     Section:CreateLabel("نص توضيحي بسيط")
+    Section:CreateDivider()
     Section:CreateParagraph({ Title = "معلومة", Content = "نص أطول يشرح شي معين هنا." })
 
-    ForgeUI:Notify({ Title = "أهلاً", Content = "تم تحميل المكتبة بنجاح", Duration = 4 })
+    ForgeUI:Notify({ Title = "تم", Content = "تم الحفظ بنجاح", Type = "Success", Duration = 4 })
+    -- Type: "Info" (افتراضي) / "Success" / "Warning" / "Error"
 
     Window:SaveConfig()   -- يحفظ كل الـ Flags في ملف JSON
     Window:LoadConfig()   -- يرجع القيم المحفوظة (طبقها بنفسك على العناصر عبر :Set إذا لزم)
@@ -60,6 +63,12 @@ local Theme = {
 -- ===== Utilities =====
 local function New(className, props)
     local inst = Instance.new(className)
+    if inst:IsA("GuiObject") then
+        inst.BorderSizePixel = 0
+    end
+    if className == "TextButton" then
+        inst.AutoButtonColor = false
+    end
     for k, v in pairs(props or {}) do
         inst[k] = v
     end
@@ -130,11 +139,19 @@ local function InitNotifications(screenGui)
     })
 end
 
+local NotifColors = {
+    Info = Theme.Accent,
+    Success = Color3.fromRGB(90, 200, 130),
+    Warning = Color3.fromRGB(230, 180, 70),
+    Error = Color3.fromRGB(230, 90, 90),
+}
+
 function ForgeUI:Notify(config)
     config = config or {}
     local title = config.Title or "Notification"
     local content = config.Content or ""
     local duration = config.Duration or 4
+    local barColor = NotifColors[config.Type] or Theme.Accent
 
     if not NotifHolder then return end
 
@@ -154,7 +171,7 @@ function ForgeUI:Notify(config)
         Parent = card,
     })
     local accent = New("Frame", {
-        BackgroundColor3 = Theme.Accent,
+        BackgroundColor3 = barColor,
         BackgroundTransparency = 1,
         Size = UDim2.new(0, 3, 1, 0),
         Parent = card,
@@ -212,21 +229,39 @@ function ForgeUI:CreateWindow(config)
     local configFolder = config.ConfigFolder or "ForgeUI"
     local toggleKey = config.ToggleKeybind or Enum.KeyCode.RightControl
 
+    if config.Theme then
+        for k, v in pairs(config.Theme) do
+            Theme[k] = v
+        end
+    end
+
     local ScreenGui = New("ScreenGui", {
         Name = "ForgeUI_" .. HttpService:GenerateGUID(false),
         ResetOnSpawn = false,
+        IgnoreGuiInset = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         DisplayOrder = 999,
     })
     ProtectGui(ScreenGui)
     InitNotifications(ScreenGui)
 
+    local Shadow = New("Frame", {
+        Name = "Shadow",
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 0.55,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 4),
+        Size = UDim2.new(size.X.Scale, size.X.Offset + 10, size.Y.Scale, size.Y.Offset + 10),
+        Parent = ScreenGui,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 14), Parent = Shadow })
+
     local Main = New("Frame", {
         Name = "Main",
         BackgroundColor3 = Theme.Background,
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = size,
+        Size = UDim2.new(size.X.Scale, 0, size.Y.Scale, 0),
         ClipsDescendants = true,
         Parent = ScreenGui,
     })
@@ -345,6 +380,7 @@ function ForgeUI:CreateWindow(config)
             Size = UDim2.new(1, 0, 1, 0),
             CanvasSize = UDim2.new(0, 0, 0, 0),
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            ScrollingDirection = Enum.ScrollingDirection.Y,
             ScrollBarThickness = 3,
             ScrollBarImageColor3 = Theme.Accent,
             Visible = firstTab,
@@ -415,6 +451,17 @@ function ForgeUI:CreateWindow(config)
                 return Card
             end
 
+            -- Hover highlight: wire on the topmost interactive control since it
+            -- fully covers the card and would otherwise swallow the hover events.
+            local function AttachHover(control, card)
+                control.MouseEnter:Connect(function()
+                    Tween(card, { BackgroundColor3 = Theme.Elevated }, 0.15)
+                end)
+                control.MouseLeave:Connect(function()
+                    Tween(card, { BackgroundColor3 = Theme.Container }, 0.15)
+                end)
+            end
+
             function SectionObj:CreateButton(cfg)
                 cfg = cfg or {}
                 local Card = BaseCard(38)
@@ -433,6 +480,7 @@ function ForgeUI:CreateWindow(config)
                     Tween(Card, { BackgroundColor3 = Theme.Container }, 0.15)
                     if cfg.Callback then cfg.Callback() end
                 end)
+                AttachHover(Btn, Card)
                 return Btn
             end
 
@@ -479,6 +527,7 @@ function ForgeUI:CreateWindow(config)
                     if cfg.Flag then Window.Flags[cfg.Flag] = state end
                     if cfg.Callback then cfg.Callback(state) end
                 end)
+                AttachHover(Click, Card)
                 if cfg.Flag then Window.Flags[cfg.Flag] = state end
                 return {
                     Set = function(_, v)
@@ -526,6 +575,7 @@ function ForgeUI:CreateWindow(config)
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Track })
                 local Fill = New("Frame", {
+                    Active = false,
                     Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
                     BackgroundColor3 = Theme.Accent,
                     Parent = Track,
@@ -632,6 +682,7 @@ function ForgeUI:CreateWindow(config)
                     local h = #options * 26
                     Tween(ListFrame, { Size = UDim2.new(1, 0, 0, open and h or 0) }, 0.15)
                 end)
+                AttachHover(OpenBtn, Card)
                 if cfg.Flag then Window.Flags[cfg.Flag] = selected end
             end
 
@@ -676,6 +727,9 @@ function ForgeUI:CreateWindow(config)
                 local bound = cfg.Default or Enum.KeyCode.Unknown
                 local listening = false
                 local Card = BaseCard(38)
+                local function KeyText()
+                    return bound == Enum.KeyCode.Unknown and "None" or bound.Name
+                end
                 New("TextLabel", {
                     BackgroundTransparency = 1,
                     Position = UDim2.new(0, 12, 0, 0),
@@ -693,7 +747,7 @@ function ForgeUI:CreateWindow(config)
                     Position = UDim2.new(1, -10, 0.5, 0),
                     Size = UDim2.new(0, 80, 0, 26),
                     Font = Theme.Font,
-                    Text = bound.Name,
+                    Text = KeyText(),
                     TextColor3 = Theme.Text,
                     TextSize = 12,
                     Parent = Card,
@@ -706,13 +760,14 @@ function ForgeUI:CreateWindow(config)
                 UserInputService.InputBegan:Connect(function(input, gpe)
                     if listening and input.UserInputType == Enum.UserInputType.Keyboard then
                         bound = input.KeyCode
-                        KeyBtn.Text = bound.Name
+                        KeyBtn.Text = KeyText()
                         listening = false
                         if cfg.Flag then Window.Flags[cfg.Flag] = bound end
                     elseif not listening and not gpe and input.KeyCode == bound then
                         if cfg.Callback then cfg.Callback() end
                     end
                 end)
+                AttachHover(KeyBtn, Card)
                 if cfg.Flag then Window.Flags[cfg.Flag] = bound end
             end
 
@@ -780,6 +835,7 @@ function ForgeUI:CreateWindow(config)
                     })
                     New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Track })
                     local Fill = New("Frame", {
+                        Active = false,
                         Size = UDim2.new(initial / 255, 0, 1, 0), BackgroundColor3 = Theme.Accent, Parent = Track,
                     })
                     New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Fill })
@@ -821,6 +877,7 @@ function ForgeUI:CreateWindow(config)
                     open = not open
                     Tween(Popup, { Size = UDim2.new(1, 0, 0, open and 86 or 0) }, 0.15)
                 end)
+                AttachHover(Swatch, Card)
                 if cfg.Flag then Window.Flags[cfg.Flag] = color end
             end
 
@@ -877,6 +934,14 @@ function ForgeUI:CreateWindow(config)
                 })
             end
 
+            function SectionObj:CreateDivider()
+                return New("Frame", {
+                    BackgroundColor3 = Theme.Stroke,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    Parent = Section,
+                })
+            end
+
             return SectionObj
         end
 
@@ -915,6 +980,8 @@ function ForgeUI:CreateWindow(config)
     function Window:Destroy()
         ScreenGui:Destroy()
     end
+
+    Tween(Main, { Size = size }, 0.35, Enum.EasingStyle.Back)
 
     return Window
 end
