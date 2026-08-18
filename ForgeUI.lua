@@ -1,63 +1,10 @@
---[[
-    ForgeUI - Professional Roblox UI Library (v1.1)
-    ------------------------------------------------
-    عناصر المكتبة: Window, Tab, Section, Button, Toggle, Slider,
-    Dropdown, Input, Keybind, ColorPicker, Label, Paragraph, Notify,
-    SaveConfig/LoadConfig
-
-    التحديثات في هذه النسخة:
-    - ظل حقيقي واقعي (UIShadow الأصلي من Roblox) بدل الإطار المسطح القديم،
-      يتبع النافذة تلقائيًا بدون أي انزياح عند السحب أو الحركة.
-    - أيقونة للنافذة (Icon) بجانب العنوان بدل ما تكون ملصوقة أو طايحة برا الإطار.
-    - زر تصغير (Minimize) بجانب زر الإغلاق.
-    - إصلاح تداخل القوائم المنسدلة و ColorPicker مع العناصر اللي تحتها.
-    - إصلاح: النافذة صارت CanvasGroup فعليًا تقص كل المحتوى على شكل الزوايا
-      الدائرية (مو مستطيل)، فما تطلع أي زاوية مربعة بارزة من طرف النافذة.
-    - إصلاح: حركة فتح النافذة ما تعود "تنتفخ" أكبر من حجمها الحقيقي.
-
-    مثال استخدام سريع:
-
-    local ForgeUI = loadstring(readfile("ForgeUI.lua"))()
-
-    local Window = ForgeUI:CreateWindow({
-        Title = "My Hub",
-        SubTitle = "v1.0",
-        Icon = "rbxassetid://0", -- اختياري: أيقونة النافذة
-        Size = UDim2.fromOffset(580, 420),
-        ConfigFolder = "MyHubConfig",
-        ToggleKeybind = Enum.KeyCode.RightControl,
-        -- Theme = { Accent = Color3.fromRGB(255, 90, 90) }, -- اختياري: تخصيص الألوان
-        -- Shadow = { Transparency = 0.5, BlurRadius = UDim.new(0, 30) }, -- اختياري: تخصيص الظل
-    })
-
-    local Tab = Window:CreateTab("Main")
-    local Section = Tab:CreateSection("General")
-
-    Section:CreateButton({ Name = "Click Me", Callback = function() end })
-    Section:CreateToggle({ Name = "Toggle", Default = false, Flag = "MyToggle", Callback = function(v) end })
-    Section:CreateSlider({ Name = "Speed", Min = 0, Max = 100, Default = 50, Flag = "Speed", Callback = function(v) end })
-    Section:CreateDropdown({ Name = "Mode", Options = {"A","B","C"}, Default = "A", Flag = "Mode", Callback = function(v) end })
-    Section:CreateInput({ Name = "Text", PlaceholderText = "اكتب هنا...", Flag = "TextIn", Callback = function(v) end })
-    Section:CreateKeybind({ Name = "Keybind", Default = Enum.KeyCode.E, Flag = "MyKey", Callback = function() end })
-    Section:CreateColorPicker({ Name = "Color", Default = Color3.fromRGB(255,0,0), Flag = "MyColor", Callback = function(c) end })
-    Section:CreateLabel("نص توضيحي بسيط")
-    Section:CreateDivider()
-    Section:CreateParagraph({ Title = "معلومة", Content = "نص أطول يشرح شي معين هنا." })
-
-    ForgeUI:Notify({ Title = "تم", Content = "تم الحفظ بنجاح", Type = "Success", Duration = 4 })
-    -- Type: "Info" (افتراضي) / "Success" / "Warning" / "Error"
-
-    Window:SaveConfig()   -- يحفظ كل الـ Flags في ملف JSON
-    Window:LoadConfig()   -- يرجع القيم المحفوظة (طبقها بنفسك على العناصر عبر :Set إذا لزم)
---]]
-
-local ForgeUI = {}
-
 -- ===== Services =====
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+
+local ForgeUI = {}
 
 -- ===== Theme =====
 local Theme = {
@@ -119,15 +66,11 @@ local function MakeDraggable(dragHandle, target)
     end)
 end
 
+-- ينسب الواجهة مباشرة إلى PlayerGui (الطريقة الرسمية المدعومة في Roblox Studio)
 local function ProtectGui(gui)
-    if syn and syn.protect_gui then
-        syn.protect_gui(gui)
-        gui.Parent = game:GetService("CoreGui")
-    elseif gethui then
-        gui.Parent = gethui()
-    else
-        gui.Parent = game:GetService("CoreGui")
-    end
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    gui.Parent = playerGui
 end
 
 -- ===== Notifications =====
@@ -178,7 +121,6 @@ function ForgeUI:Notify(config)
     New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = card })
     New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = card })
 
-    -- شريط اللون: بار داخلي رفيع، بعيد عن أي UIPadding عشان يطلع نظيف وما ينضغط
     local accent = New("Frame", {
         BackgroundColor3 = barColor,
         BackgroundTransparency = 1,
@@ -189,7 +131,6 @@ function ForgeUI:Notify(config)
     })
     New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = accent })
 
-    -- المحتوى النصي بإطار داخلي منفصل يحمل الـ UIPadding، عشان ما يأثر على شريط اللون
     local inner = New("Frame", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 0),
@@ -269,12 +210,8 @@ function ForgeUI:CreateWindow(config)
     ProtectGui(ScreenGui)
     InitNotifications(ScreenGui)
 
-    -- حجم البداية: نفس نسب الهدف لكن بأوفست أصغر شوي (مو صفر) عشان حركة "تكبّر"
-    -- ناعمة بدون أن تتضخم النافذة مؤقتًا أكبر من المطلوب وتطلع خارج الشاشة.
     local startSize = UDim2.new(size.X.Scale, size.X.Offset * 0.92, size.Y.Scale, size.Y.Offset * 0.92)
 
-    -- CanvasGroup مو Frame عادي: هذا يضمن إن كل محتوى النافذة يتقص فعليًا
-    -- على شكل الزوايا الدائرية بدل ما تطلع زاوية مربعة بارزة خارج إطار المكتبة.
     local Main = New("CanvasGroup", {
         Name = "Main",
         BackgroundColor3 = Theme.Background,
@@ -287,11 +224,6 @@ function ForgeUI:CreateWindow(config)
     New("UICorner", { CornerRadius = UDim.new(0, 10), Parent = Main })
     New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = Main })
 
-    -- ظل حقيقي (UIShadow الأصلي في Roblox) بدل إطار مسطح.
-    -- هذا العنصر لا يتأثر بالـ ClipsDescendants ويتبع حجم/حركة Main تلقائيًا،
-    -- فما راح تشوف أي زاوية أو مربع يطلع أو ينفصل عن الإطار عند الفتح أو السحب.
-    -- ملفوف بـ pcall لأن UIShadow ميزة جديدة نسبيًا، فبعض الـ executors القديمة
-    -- قد ما تكون دعمتها بعد؛ ولو صار كذا، النافذة تشتغل عادي بدون الظل فقط.
     pcall(function()
         local shadowCfg = config.Shadow or {}
         New("UIShadow", {
@@ -320,8 +252,6 @@ function ForgeUI:CreateWindow(config)
         Parent = TopBar,
     })
 
-    -- أيقونة النافذة (اختيارية) - توضع داخل الـ TopBar بشكل طبيعي بدل ما تكون
-    -- عنصر منفصل لاصق أو طايح خارج حدود المكتبة.
     local textStartX = 16
     if config.Icon then
         New("ImageLabel", {
@@ -363,6 +293,83 @@ function ForgeUI:CreateWindow(config)
         Parent = TopBar,
     })
 
+    -- ===== بوب أب تأكيد حذف المكتبة =====
+    local ConfirmOverlay = New("Frame", {
+        Name = "ConfirmOverlay",
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Visible = false,
+        ZIndex = 50,
+        Parent = Main,
+    })
+    local ConfirmBox = New("Frame", {
+        BackgroundColor3 = Theme.Container,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 240, 0, 120),
+        ZIndex = 51,
+        Parent = ConfirmOverlay,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 10), Parent = ConfirmBox })
+    New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = ConfirmBox })
+    New("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 16, 0, 16),
+        Size = UDim2.new(1, -32, 0, 44),
+        Font = Theme.FontBold,
+        Text = "هل تريد حذف المكتبة؟",
+        TextColor3 = Theme.Text,
+        TextSize = 15,
+        TextWrapped = true,
+        ZIndex = 52,
+        Parent = ConfirmBox,
+    })
+    local YesBtn = New("TextButton", {
+        BackgroundColor3 = Color3.fromRGB(200, 70, 70),
+        Position = UDim2.new(0, 16, 1, -46),
+        Size = UDim2.new(0, 96, 0, 30),
+        Font = Theme.FontBold,
+        Text = "نعم",
+        TextColor3 = Theme.Text,
+        TextSize = 13,
+        ZIndex = 52,
+        Parent = ConfirmBox,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = YesBtn })
+    local NoBtn = New("TextButton", {
+        BackgroundColor3 = Theme.Elevated,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, -16, 1, -46),
+        Size = UDim2.new(0, 96, 0, 30),
+        Font = Theme.FontBold,
+        Text = "لا",
+        TextColor3 = Theme.Text,
+        TextSize = 13,
+        ZIndex = 52,
+        Parent = ConfirmBox,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = NoBtn })
+
+    local function openConfirm()
+        ConfirmOverlay.Visible = true
+        Tween(ConfirmOverlay, { BackgroundTransparency = 0.4 }, 0.15)
+    end
+    local function closeConfirm()
+        Tween(ConfirmOverlay, { BackgroundTransparency = 1 }, 0.15)
+        task.delay(0.15, function()
+            ConfirmOverlay.Visible = false
+        end)
+    end
+    NoBtn.MouseButton1Click:Connect(closeConfirm)
+    YesBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    YesBtn.MouseEnter:Connect(function() Tween(YesBtn, { BackgroundColor3 = Color3.fromRGB(220, 90, 90) }, 0.15) end)
+    YesBtn.MouseLeave:Connect(function() Tween(YesBtn, { BackgroundColor3 = Color3.fromRGB(200, 70, 70) }, 0.15) end)
+    NoBtn.MouseEnter:Connect(function() Tween(NoBtn, { BackgroundColor3 = Theme.Stroke }, 0.15) end)
+    NoBtn.MouseLeave:Connect(function() Tween(NoBtn, { BackgroundColor3 = Theme.Elevated }, 0.15) end)
+
     local CloseBtn = New("TextButton", {
         BackgroundColor3 = Theme.Elevated,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -376,7 +383,7 @@ function ForgeUI:CreateWindow(config)
     })
     New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CloseBtn })
     CloseBtn.MouseButton1Click:Connect(function()
-        ScreenGui.Enabled = false
+        openConfirm()
     end)
     CloseBtn.MouseEnter:Connect(function()
         Tween(CloseBtn, { BackgroundColor3 = Color3.fromRGB(200, 70, 70), TextColor3 = Theme.Text }, 0.15)
@@ -455,7 +462,7 @@ function ForgeUI:CreateWindow(config)
     Window.Tabs = {}
     Window.Flags = {}
     Window.ConfigFolder = configFolder
-    Window._closeActivePopup = nil -- يضمن إغلاق أي Dropdown/ColorPicker مفتوح عند فتح غيره
+    Window._closeActivePopup = nil
     local firstTab = true
 
     function Window:CreateTab(cfg)
@@ -555,9 +562,6 @@ function ForgeUI:CreateWindow(config)
             local SectionObj = {}
 
             local function BaseCard(height)
-                -- CanvasGroup مو Frame عادي: هذا يضمن إن أي عنصر داخل الكرت
-                -- (صفوف الدروب داون، بوب أب اللون، إلخ) يتقص فعليًا على شكل
-                -- الزوايا الدائرية بدل ما يطلع ركن مربع بارز خارج حواف الكرت.
                 local Card = New("CanvasGroup", {
                     BackgroundColor3 = Theme.Container,
                     Size = UDim2.new(1, 0, 0, height or 38),
@@ -569,8 +573,6 @@ function ForgeUI:CreateWindow(config)
                 return Card
             end
 
-            -- Hover highlight: wire on the topmost interactive control since it
-            -- fully covers the card and would otherwise swallow the hover events.
             local function AttachHover(control, card)
                 control.MouseEnter:Connect(function()
                     Tween(card, { BackgroundColor3 = Theme.Elevated }, 0.15)
@@ -660,8 +662,9 @@ function ForgeUI:CreateWindow(config)
                 cfg = cfg or {}
                 local min = cfg.Min or 0
                 local max = cfg.Max or 100
+                local step = cfg.Step or 1
                 local value = cfg.Default or min
-                local Card = BaseCard(46)
+                local Card = BaseCard(50)
                 New("TextLabel", {
                     BackgroundTransparency = 1,
                     Position = UDim2.new(0, 12, 0, 4),
@@ -685,9 +688,35 @@ function ForgeUI:CreateWindow(config)
                     TextXAlignment = Enum.TextXAlignment.Right,
                     Parent = Card,
                 })
+
+                local MinusBtn = New("TextButton", {
+                    BackgroundColor3 = Theme.Elevated,
+                    Position = UDim2.new(0, 12, 0, 26),
+                    Size = UDim2.new(0, 22, 0, 20),
+                    Font = Theme.FontBold,
+                    Text = "-",
+                    TextColor3 = Theme.Text,
+                    TextSize = 15,
+                    Parent = Card,
+                })
+                New("UICorner", { CornerRadius = UDim.new(0, 5), Parent = MinusBtn })
+
+                local PlusBtn = New("TextButton", {
+                    BackgroundColor3 = Theme.Elevated,
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -12, 0, 26),
+                    Size = UDim2.new(0, 22, 0, 20),
+                    Font = Theme.FontBold,
+                    Text = "+",
+                    TextColor3 = Theme.Text,
+                    TextSize = 15,
+                    Parent = Card,
+                })
+                New("UICorner", { CornerRadius = UDim.new(0, 5), Parent = PlusBtn })
+
                 local Track = New("Frame", {
-                    Position = UDim2.new(0, 12, 0, 28),
-                    Size = UDim2.new(1, -24, 0, 6),
+                    Position = UDim2.new(0, 42, 0, 33),
+                    Size = UDim2.new(1, -84, 0, 6),
                     BackgroundColor3 = Theme.Elevated,
                     Parent = Card,
                 })
@@ -700,14 +729,19 @@ function ForgeUI:CreateWindow(config)
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Fill })
 
-                local dragging = false
-                local function updateFromInput(input)
-                    local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-                    value = math.floor(min + (max - min) * rel)
+                local function setValue(newValue)
+                    value = math.clamp(newValue, min, max)
+                    local rel = (value - min) / (max - min)
                     Fill.Size = UDim2.new(rel, 0, 1, 0)
                     ValueLabel.Text = tostring(value)
                     if cfg.Flag then Window.Flags[cfg.Flag] = value end
                     if cfg.Callback then cfg.Callback(value) end
+                end
+
+                local dragging = false
+                local function updateFromInput(input)
+                    local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+                    setValue(math.floor(min + (max - min) * rel))
                 end
                 Track.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -725,6 +759,18 @@ function ForgeUI:CreateWindow(config)
                         dragging = false
                     end
                 end)
+
+                MinusBtn.MouseButton1Click:Connect(function()
+                    setValue(value - step)
+                end)
+                PlusBtn.MouseButton1Click:Connect(function()
+                    setValue(value + step)
+                end)
+                MinusBtn.MouseEnter:Connect(function() Tween(MinusBtn, { BackgroundColor3 = Theme.Stroke }, 0.15) end)
+                MinusBtn.MouseLeave:Connect(function() Tween(MinusBtn, { BackgroundColor3 = Theme.Elevated }, 0.15) end)
+                PlusBtn.MouseEnter:Connect(function() Tween(PlusBtn, { BackgroundColor3 = Theme.Stroke }, 0.15) end)
+                PlusBtn.MouseLeave:Connect(function() Tween(PlusBtn, { BackgroundColor3 = Theme.Elevated }, 0.15) end)
+
                 if cfg.Flag then Window.Flags[cfg.Flag] = value end
             end
 
