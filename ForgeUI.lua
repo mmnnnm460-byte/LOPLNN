@@ -1,9 +1,16 @@
 --[[
-    ForgeUI - Professional Roblox UI Library
+    ForgeUI - Professional Roblox UI Library (v1.1)
     ------------------------------------------------
     عناصر المكتبة: Window, Tab, Section, Button, Toggle, Slider,
     Dropdown, Input, Keybind, ColorPicker, Label, Paragraph, Notify,
     SaveConfig/LoadConfig
+
+    التحديثات في هذه النسخة:
+    - ظل حقيقي واقعي (UIShadow الأصلي من Roblox) بدل الإطار المسطح القديم،
+      يتبع النافذة تلقائيًا بدون أي انزياح عند السحب أو الحركة.
+    - أيقونة للنافذة (Icon) بجانب العنوان بدل ما تكون ملصوقة أو طايحة برا الإطار.
+    - زر تصغير (Minimize) بجانب زر الإغلاق.
+    - إصلاح تداخل القوائم المنسدلة و ColorPicker مع العناصر اللي تحتها.
 
     مثال استخدام سريع:
 
@@ -12,10 +19,12 @@
     local Window = ForgeUI:CreateWindow({
         Title = "My Hub",
         SubTitle = "v1.0",
+        Icon = "rbxassetid://0", -- اختياري: أيقونة النافذة
         Size = UDim2.fromOffset(580, 420),
         ConfigFolder = "MyHubConfig",
         ToggleKeybind = Enum.KeyCode.RightControl,
         -- Theme = { Accent = Color3.fromRGB(255, 90, 90) }, -- اختياري: تخصيص الألوان
+        -- Shadow = { Transparency = 0.5, BlurRadius = UDim.new(0, 30) }, -- اختياري: تخصيص الظل
     })
 
     local Tab = Window:CreateTab("Main")
@@ -245,17 +254,6 @@ function ForgeUI:CreateWindow(config)
     ProtectGui(ScreenGui)
     InitNotifications(ScreenGui)
 
-    local Shadow = New("Frame", {
-        Name = "Shadow",
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-        BackgroundTransparency = 0.55,
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 4),
-        Size = UDim2.new(size.X.Scale, size.X.Offset + 10, size.Y.Scale, size.Y.Offset + 10),
-        Parent = ScreenGui,
-    })
-    New("UICorner", { CornerRadius = UDim.new(0, 14), Parent = Shadow })
-
     local Main = New("Frame", {
         Name = "Main",
         BackgroundColor3 = Theme.Background,
@@ -267,6 +265,24 @@ function ForgeUI:CreateWindow(config)
     })
     New("UICorner", { CornerRadius = UDim.new(0, 10), Parent = Main })
     New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = Main })
+
+    -- ظل حقيقي (UIShadow الأصلي في Roblox) بدل إطار مسطح.
+    -- هذا العنصر لا يتأثر بالـ ClipsDescendants ويتبع حجم/حركة Main تلقائيًا،
+    -- فما راح تشوف أي زاوية أو مربع يطلع أو ينفصل عن الإطار عند الفتح أو السحب.
+    -- ملفوف بـ pcall لأن UIShadow ميزة جديدة نسبيًا، فبعض الـ executors القديمة
+    -- قد ما تكون دعمتها بعد؛ ولو صار كذا، النافذة تشتغل عادي بدون الظل فقط.
+    pcall(function()
+        local shadowCfg = config.Shadow or {}
+        New("UIShadow", {
+            Color = shadowCfg.Color or Color3.fromRGB(0, 0, 0),
+            Transparency = shadowCfg.Transparency or 0.55,
+            BlurRadius = shadowCfg.BlurRadius or UDim.new(0, 26),
+            Offset = shadowCfg.Offset or UDim2.new(0, 0, 0, 6),
+            Spread = shadowCfg.Spread or UDim2.new(0, 0, 0, 0),
+            ZIndex = -1,
+            Parent = Main,
+        })
+    end)
 
     local TopBar = New("Frame", {
         Name = "TopBar",
@@ -282,28 +298,50 @@ function ForgeUI:CreateWindow(config)
         Size = UDim2.new(1, 0, 0, 10),
         Parent = TopBar,
     })
+
+    -- أيقونة النافذة (اختيارية) - توضع داخل الـ TopBar بشكل طبيعي بدل ما تكون
+    -- عنصر منفصل لاصق أو طايح خارج حدود المكتبة.
+    local textStartX = 16
+    if config.Icon then
+        New("ImageLabel", {
+            Name = "Icon",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 14, 0.5, -12),
+            Size = UDim2.new(0, 24, 0, 24),
+            Image = config.Icon,
+            ImageColor3 = config.IconColor or Theme.Accent,
+            Parent = TopBar,
+        })
+        textStartX = 48
+    end
+
     New("TextLabel", {
+        Name = "Title",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 16, 0, 5),
-        Size = UDim2.new(1, -60, 0, 20),
+        Position = UDim2.new(0, textStartX, 0, 5),
+        Size = UDim2.new(1, -(textStartX + 76), 0, 20),
         Font = Theme.FontBold,
         Text = title,
         TextColor3 = Theme.Text,
         TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = TopBar,
     })
     New("TextLabel", {
+        Name = "SubTitle",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 16, 0, 23),
-        Size = UDim2.new(1, -60, 0, 16),
+        Position = UDim2.new(0, textStartX, 0, 23),
+        Size = UDim2.new(1, -(textStartX + 76), 0, 16),
         Font = Theme.Font,
         Text = subtitle,
         TextColor3 = Theme.SubText,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = TopBar,
     })
+
     local CloseBtn = New("TextButton", {
         BackgroundColor3 = Theme.Elevated,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -318,6 +356,31 @@ function ForgeUI:CreateWindow(config)
     New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CloseBtn })
     CloseBtn.MouseButton1Click:Connect(function()
         ScreenGui.Enabled = false
+    end)
+    CloseBtn.MouseEnter:Connect(function()
+        Tween(CloseBtn, { BackgroundColor3 = Color3.fromRGB(200, 70, 70), TextColor3 = Theme.Text }, 0.15)
+    end)
+    CloseBtn.MouseLeave:Connect(function()
+        Tween(CloseBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText }, 0.15)
+    end)
+
+    local MinimizeBtn = New("TextButton", {
+        BackgroundColor3 = Theme.Elevated,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -46, 0.5, 0),
+        Size = UDim2.new(0, 26, 0, 26),
+        Font = Theme.FontBold,
+        Text = "-",
+        TextColor3 = Theme.SubText,
+        TextSize = 16,
+        Parent = TopBar,
+    })
+    New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = MinimizeBtn })
+    MinimizeBtn.MouseEnter:Connect(function()
+        Tween(MinimizeBtn, { BackgroundColor3 = Theme.Stroke, TextColor3 = Theme.Text }, 0.15)
+    end)
+    MinimizeBtn.MouseLeave:Connect(function()
+        Tween(MinimizeBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText }, 0.15)
     end)
 
     MakeDraggable(TopBar, Main)
@@ -347,6 +410,18 @@ function ForgeUI:CreateWindow(config)
         Parent = Main,
     })
 
+    local minimized = false
+    MinimizeBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        TabBar.Visible = not minimized
+        PageHolder.Visible = not minimized
+        if minimized then
+            Tween(Main, { Size = UDim2.new(size.X.Scale, size.X.Offset, 0, 44) }, 0.22)
+        else
+            Tween(Main, { Size = size }, 0.22)
+        end
+    end)
+
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == toggleKey then
@@ -359,9 +434,16 @@ function ForgeUI:CreateWindow(config)
     Window.Tabs = {}
     Window.Flags = {}
     Window.ConfigFolder = configFolder
+    Window._closeActivePopup = nil -- يضمن إغلاق أي Dropdown/ColorPicker مفتوح عند فتح غيره
     local firstTab = true
 
-    function Window:CreateTab(name)
+    function Window:CreateTab(cfg)
+        if type(cfg) == "string" then
+            cfg = { Name = cfg }
+        end
+        cfg = cfg or {}
+        local name = cfg.Name or "Tab"
+
         local TabButton = New("TextButton", {
             BackgroundColor3 = Theme.Elevated,
             BackgroundTransparency = firstTab and 0 or 1,
@@ -373,6 +455,17 @@ function ForgeUI:CreateWindow(config)
             Parent = TabBar,
         })
         New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = TabButton })
+        if cfg.Icon then
+            New("UIPadding", { PaddingLeft = UDim.new(0, 26), Parent = TabButton })
+            New("ImageLabel", {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 8, 0.5, -8),
+                Size = UDim2.new(0, 16, 0, 16),
+                Image = cfg.Icon,
+                ImageColor3 = firstTab and Theme.Text or Theme.SubText,
+                Parent = TabButton,
+            })
+        end
 
         local Page = New("ScrollingFrame", {
             BackgroundTransparency = 1,
@@ -444,6 +537,7 @@ function ForgeUI:CreateWindow(config)
                 local Card = New("Frame", {
                     BackgroundColor3 = Theme.Container,
                     Size = UDim2.new(1, 0, 0, height or 38),
+                    ClipsDescendants = true,
                     Parent = Section,
                 })
                 New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = Card })
@@ -615,11 +709,14 @@ function ForgeUI:CreateWindow(config)
                 local options = cfg.Options or {}
                 local selected = cfg.Default or options[1]
                 local open = false
-                local Card = BaseCard(38)
+                local headerHeight = 38
+                local rowHeight = 26
+
+                local Card = BaseCard(headerHeight)
                 New("TextLabel", {
                     BackgroundTransparency = 1,
                     Position = UDim2.new(0, 12, 0, 0),
-                    Size = UDim2.new(0.5, 0, 1, 0),
+                    Size = UDim2.new(0.5, 0, 0, headerHeight),
                     Font = Theme.Font,
                     Text = cfg.Name or "Dropdown",
                     TextColor3 = Theme.Text,
@@ -629,9 +726,9 @@ function ForgeUI:CreateWindow(config)
                 })
                 local SelectedLabel = New("TextLabel", {
                     BackgroundTransparency = 1,
-                    AnchorPoint = Vector2.new(1, 0.5),
-                    Position = UDim2.new(1, -30, 0.5, 0),
-                    Size = UDim2.new(0.4, 0, 0, 18),
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -30, 0, 0),
+                    Size = UDim2.new(0.4, 0, 0, headerHeight),
                     Font = Theme.Font,
                     Text = tostring(selected or ""),
                     TextColor3 = Theme.SubText,
@@ -639,48 +736,75 @@ function ForgeUI:CreateWindow(config)
                     TextXAlignment = Enum.TextXAlignment.Right,
                     Parent = Card,
                 })
+                New("TextLabel", {
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -12, 0, 0),
+                    Size = UDim2.new(0, 14, 0, headerHeight),
+                    Font = Theme.FontBold,
+                    Text = "˅",
+                    TextColor3 = Theme.SubText,
+                    TextSize = 14,
+                    Parent = Card,
+                })
                 local OpenBtn = New("TextButton", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 1, 0),
+                    Size = UDim2.new(1, 0, 0, headerHeight),
                     Text = "",
                     Parent = Card,
                 })
+
                 local ListFrame = New("Frame", {
-                    BackgroundColor3 = Theme.Elevated,
-                    Position = UDim2.new(0, 0, 1, 4),
-                    Size = UDim2.new(1, 0, 0, 0),
-                    ClipsDescendants = true,
-                    ZIndex = 5,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 0, 0, headerHeight),
+                    Size = UDim2.new(1, 0, 0, #options * rowHeight),
                     Parent = Card,
                 })
-                New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = ListFrame })
-                New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = ListFrame })
+                New("Frame", {
+                    BackgroundColor3 = Theme.Stroke,
+                    Position = UDim2.new(0, 10, 0, 0),
+                    Size = UDim2.new(1, -20, 0, 1),
+                    Parent = ListFrame,
+                })
                 New("UIListLayout", { Parent = ListFrame, SortOrder = Enum.SortOrder.LayoutOrder })
+                New("UIPadding", { PaddingTop = UDim.new(0, 4), Parent = ListFrame })
+
+                local function closeDropdown()
+                    if open then
+                        open = false
+                        Tween(Card, { Size = UDim2.new(1, 0, 0, headerHeight) }, 0.18)
+                    end
+                end
 
                 for _, opt in ipairs(options) do
                     local OptBtn = New("TextButton", {
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, 0, 0, 26),
+                        Size = UDim2.new(1, 0, 0, rowHeight),
                         Font = Theme.Font,
                         Text = tostring(opt),
                         TextColor3 = Theme.Text,
                         TextSize = 12,
-                        ZIndex = 6,
                         Parent = ListFrame,
                     })
+                    OptBtn.MouseEnter:Connect(function() Tween(OptBtn, { TextColor3 = Theme.Accent }, 0.1) end)
+                    OptBtn.MouseLeave:Connect(function() Tween(OptBtn, { TextColor3 = Theme.Text }, 0.1) end)
                     OptBtn.MouseButton1Click:Connect(function()
                         selected = opt
                         SelectedLabel.Text = tostring(opt)
-                        open = false
-                        Tween(ListFrame, { Size = UDim2.new(1, 0, 0, 0) }, 0.15)
+                        closeDropdown()
                         if cfg.Flag then Window.Flags[cfg.Flag] = opt end
                         if cfg.Callback then cfg.Callback(opt) end
                     end)
                 end
                 OpenBtn.MouseButton1Click:Connect(function()
-                    open = not open
-                    local h = #options * 26
-                    Tween(ListFrame, { Size = UDim2.new(1, 0, 0, open and h or 0) }, 0.15)
+                    if open then
+                        closeDropdown()
+                    else
+                        if Window._closeActivePopup then Window._closeActivePopup() end
+                        open = true
+                        Tween(Card, { Size = UDim2.new(1, 0, 0, headerHeight + 8 + (#options * rowHeight)) }, 0.18)
+                        Window._closeActivePopup = closeDropdown
+                    end
                 end)
                 AttachHover(OpenBtn, Card)
                 if cfg.Flag then Window.Flags[cfg.Flag] = selected end
@@ -774,11 +898,13 @@ function ForgeUI:CreateWindow(config)
             function SectionObj:CreateColorPicker(cfg)
                 cfg = cfg or {}
                 local color = cfg.Default or Color3.fromRGB(255, 255, 255)
-                local Card = BaseCard(38)
+                local headerHeight = 38
+                local popupHeight = 96
+                local Card = BaseCard(headerHeight)
                 New("TextLabel", {
                     BackgroundTransparency = 1,
                     Position = UDim2.new(0, 12, 0, 0),
-                    Size = UDim2.new(0.6, 0, 1, 0),
+                    Size = UDim2.new(0.6, 0, 0, headerHeight),
                     Font = Theme.Font,
                     Text = cfg.Name or "Color",
                     TextColor3 = Theme.Text,
@@ -788,8 +914,8 @@ function ForgeUI:CreateWindow(config)
                 })
                 local Swatch = New("TextButton", {
                     BackgroundColor3 = color,
-                    AnchorPoint = Vector2.new(1, 0.5),
-                    Position = UDim2.new(1, -10, 0.5, 0),
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -10, 0, 6),
                     Size = UDim2.new(0, 26, 0, 26),
                     Text = "",
                     Parent = Card,
@@ -798,19 +924,22 @@ function ForgeUI:CreateWindow(config)
                 New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = Swatch })
 
                 local Popup = New("Frame", {
-                    BackgroundColor3 = Theme.Elevated,
-                    Position = UDim2.new(0, 0, 1, 4),
-                    Size = UDim2.new(1, 0, 0, 0),
-                    ClipsDescendants = true,
-                    ZIndex = 5,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 0, 0, headerHeight),
+                    Size = UDim2.new(1, 0, 0, popupHeight),
                     Parent = Card,
                 })
-                New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = Popup })
-                New("UIPadding", {
-                    PaddingTop = UDim.new(0, 8), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10),
+                New("Frame", {
+                    BackgroundColor3 = Theme.Stroke,
+                    Position = UDim2.new(0, 10, 0, 0),
+                    Size = UDim2.new(1, -20, 0, 1),
                     Parent = Popup,
                 })
-                New("UIListLayout", { Parent = Popup, Padding = UDim.new(0, 6) })
+                New("UIPadding", {
+                    PaddingTop = UDim.new(0, 10), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12),
+                    Parent = Popup,
+                })
+                New("UIListLayout", { Parent = Popup, Padding = UDim.new(0, 8) })
 
                 local r = math.floor(color.R * 255)
                 local g = math.floor(color.G * 255)
@@ -873,9 +1002,21 @@ function ForgeUI:CreateWindow(config)
                 end)
 
                 local open = false
+                local function closePopup()
+                    if open then
+                        open = false
+                        Tween(Card, { Size = UDim2.new(1, 0, 0, headerHeight) }, 0.18)
+                    end
+                end
                 Swatch.MouseButton1Click:Connect(function()
-                    open = not open
-                    Tween(Popup, { Size = UDim2.new(1, 0, 0, open and 86 or 0) }, 0.15)
+                    if open then
+                        closePopup()
+                    else
+                        if Window._closeActivePopup then Window._closeActivePopup() end
+                        open = true
+                        Tween(Card, { Size = UDim2.new(1, 0, 0, headerHeight + popupHeight) }, 0.18)
+                        Window._closeActivePopup = closePopup
+                    end
                 end)
                 AttachHover(Swatch, Card)
                 if cfg.Flag then Window.Flags[cfg.Flag] = color end
