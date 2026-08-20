@@ -1,3 +1,53 @@
+--[[
+    ForgeUI - Professional Roblox UI Library (v1.1)
+    ------------------------------------------------
+    عناصر المكتبة: Window, Tab, Section, Button, Toggle, Slider,
+    Dropdown, Input, Keybind, ColorPicker, Label, Paragraph, Notify,
+    SaveConfig/LoadConfig
+
+    التحديثات في هذه النسخة:
+    - ظل حقيقي واقعي (UIShadow الأصلي من Roblox) بدل الإطار المسطح القديم،
+      يتبع النافذة تلقائيًا بدون أي انزياح عند السحب أو الحركة.
+    - أيقونة للنافذة (Icon) بجانب العنوان بدل ما تكون ملصوقة أو طايحة برا الإطار.
+    - زر تصغير (Minimize) بجانب زر الإغلاق.
+    - إصلاح تداخل القوائم المنسدلة و ColorPicker مع العناصر اللي تحتها.
+
+    مثال استخدام سريع:
+
+    local ForgeUI = loadstring(readfile("ForgeUI.lua"))()
+
+    local Window = ForgeUI:CreateWindow({
+        Title = "My Hub",
+        SubTitle = "v1.0",
+        Icon = "rbxassetid://0", -- اختياري: أيقونة النافذة
+        Size = UDim2.fromOffset(580, 420),
+        ConfigFolder = "MyHubConfig",
+        ToggleKeybind = Enum.KeyCode.RightControl,
+        -- Theme = { Accent = Color3.fromRGB(255, 90, 90) }, -- اختياري: تخصيص الألوان
+        -- Shadow = { Transparency = 0.5, BlurRadius = UDim.new(0, 30) }, -- اختياري: تخصيص الظل
+    })
+
+    local Tab = Window:CreateTab("Main")
+    local Section = Tab:CreateSection("General")
+
+    Section:CreateButton({ Name = "Click Me", Callback = function() end })
+    Section:CreateToggle({ Name = "Toggle", Default = false, Flag = "MyToggle", Callback = function(v) end })
+    Section:CreateSlider({ Name = "Speed", Min = 0, Max = 100, Default = 50, Flag = "Speed", Callback = function(v) end })
+    Section:CreateDropdown({ Name = "Mode", Options = {"A","B","C"}, Default = "A", Flag = "Mode", Callback = function(v) end })
+    Section:CreateInput({ Name = "Text", PlaceholderText = "اكتب هنا...", Flag = "TextIn", Callback = function(v) end })
+    Section:CreateKeybind({ Name = "Keybind", Default = Enum.KeyCode.E, Flag = "MyKey", Callback = function() end })
+    Section:CreateColorPicker({ Name = "Color", Default = Color3.fromRGB(255,0,0), Flag = "MyColor", Callback = function(c) end })
+    Section:CreateLabel("نص توضيحي بسيط")
+    Section:CreateDivider()
+    Section:CreateParagraph({ Title = "معلومة", Content = "نص أطول يشرح شي معين هنا." })
+
+    ForgeUI:Notify({ Title = "تم", Content = "تم الحفظ بنجاح", Type = "Success", Duration = 4 })
+    -- Type: "Info" (افتراضي) / "Success" / "Warning" / "Error"
+
+    Window:SaveConfig()   -- يحفظ كل الـ Flags في ملف JSON
+    Window:LoadConfig()   -- يرجع القيم المحفوظة (طبقها بنفسك على العناصر عبر :Set إذا لزم)
+--]]
+
 local ForgeUI = {}
 
 -- ===== Services =====
