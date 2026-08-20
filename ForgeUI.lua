@@ -8,15 +8,16 @@ local HttpService = game:GetService("HttpService")
 
 -- ===== Theme =====
 local Theme = {
-    Background = Color3.fromRGB(22, 22, 26),
-    Container  = Color3.fromRGB(30, 30, 35),
-    Elevated   = Color3.fromRGB(40, 40, 47),
-    Stroke     = Color3.fromRGB(54, 54, 62),
+    Background = Color3.fromRGB(18, 18, 22),
+    Container  = Color3.fromRGB(28, 28, 34),
+    Elevated   = Color3.fromRGB(38, 38, 46),
+    Stroke     = Color3.fromRGB(52, 52, 62),
     Accent     = Color3.fromRGB(120, 130, 255),
-    Text       = Color3.fromRGB(240, 240, 245),
-    SubText    = Color3.fromRGB(150, 150, 160),
+    AccentLight = Color3.fromRGB(165, 172, 255),
+    Text       = Color3.fromRGB(245, 245, 250),
+    SubText    = Color3.fromRGB(148, 148, 160),
     Font       = Enum.Font.GothamMedium,
-    FontBold   = Enum.Font.FredokaOne,
+    FontBold   = Enum.Font.GothamBlack,
 }
 
 -- ===== Utilities =====
@@ -253,10 +254,18 @@ function ForgeUI:CreateWindow(config)
     local TopBar = New("Frame", {
         Name = "TopBar",
         BackgroundColor3 = Theme.Container,
-        Size = UDim2.new(1, 0, 0, 44),
+        Size = UDim2.new(1, 0, 0, 46),
         Parent = Main,
     })
     New("UICorner", { CornerRadius = UDim.new(0, 10), Parent = TopBar })
+    New("UIGradient", {
+        Rotation = 90,
+        Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255)),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.94), NumberSequenceKeypoint.new(1, 1),
+        }),
+        Parent = TopBar,
+    })
     New("Frame", {
         BackgroundColor3 = Theme.Container,
         BorderSizePixel = 0,
@@ -264,27 +273,59 @@ function ForgeUI:CreateWindow(config)
         Size = UDim2.new(1, 0, 0, 10),
         Parent = TopBar,
     })
+    -- خط تحديد رفيع بلون متدرج أسفل الشريط العلوي، يفصله بأناقة عن باقي النافذة
+    local TopBarEdge = New("Frame", {
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        AnchorPoint = Vector2.new(0, 1),
+        Position = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 1),
+        ZIndex = 3,
+        Parent = TopBar,
+    })
+    New("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Theme.Accent),
+            ColorSequenceKeypoint.new(0.5, Theme.AccentLight),
+            ColorSequenceKeypoint.new(1, Theme.Accent),
+        }),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1, 0.55),
+        }),
+        Parent = TopBarEdge,
+    })
 
-    -- أيقونة النافذة (اختيارية) - توضع داخل الـ TopBar بشكل طبيعي بدل ما تكون
-    -- عنصر منفصل لاصق أو طايح خارج حدود المكتبة.
+    -- أيقونة النافذة (اختيارية) - داخل شارة دائرية بخلفية بلون التمييز، بدل صورة
+    -- طايحة لحالها، عشان تبان جزء طبيعي من هوية النافذة.
     local textStartX = 16
     if config.Icon then
+        local IconBadge = New("Frame", {
+            Name = "IconBadge",
+            BackgroundColor3 = Theme.Accent,
+            BackgroundTransparency = 0.82,
+            Position = UDim2.new(0, 10, 0.5, -14),
+            Size = UDim2.new(0, 28, 0, 28),
+            Parent = TopBar,
+        })
+        New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = IconBadge })
         New("ImageLabel", {
             Name = "Icon",
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 14, 0.5, -12),
-            Size = UDim2.new(0, 24, 0, 24),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            Size = UDim2.new(0, 17, 0, 17),
             Image = config.Icon,
-            ImageColor3 = config.IconColor or Theme.Accent,
-            Parent = TopBar,
+            ImageColor3 = config.IconColor or Theme.AccentLight,
+            Parent = IconBadge,
         })
-        textStartX = 48
+        textStartX = 50
     end
 
-    New("TextLabel", {
+    local TitleLabel = New("TextLabel", {
         Name = "Title",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, textStartX, 0, 5),
+        Position = UDim2.new(0, textStartX, 0, 6),
         Size = UDim2.new(1, -(textStartX + 76), 0, 20),
         Font = Theme.FontBold,
         Text = title,
@@ -294,10 +335,18 @@ function ForgeUI:CreateWindow(config)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = TopBar,
     })
+    New("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Theme.Text),
+            ColorSequenceKeypoint.new(0.55, Theme.Text),
+            ColorSequenceKeypoint.new(1, Theme.AccentLight),
+        }),
+        Parent = TitleLabel,
+    })
     New("TextLabel", {
         Name = "SubTitle",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, textStartX, 0, 23),
+        Position = UDim2.new(0, textStartX, 0, 24),
         Size = UDim2.new(1, -(textStartX + 76), 0, 16),
         Font = Theme.Font,
         Text = subtitle,
@@ -428,9 +477,19 @@ function ForgeUI:CreateWindow(config)
     local TabBar = New("Frame", {
         Name = "TabBar",
         BackgroundColor3 = Theme.Container,
-        Position = UDim2.new(0, 0, 0, 44),
-        Size = UDim2.new(0, 130, 1, -44),
+        BackgroundTransparency = 0.3,
+        Position = UDim2.new(0, 0, 0, 46),
+        Size = UDim2.new(0, 132, 1, -46),
         Parent = Main,
+    })
+    New("Frame", {
+        Name = "TabBarDivider",
+        BackgroundColor3 = Theme.Stroke,
+        BorderSizePixel = 0,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(0, 1, 1, 0),
+        Parent = TabBar,
     })
     New("UIListLayout", {
         Parent = TabBar,
@@ -438,15 +497,15 @@ function ForgeUI:CreateWindow(config)
         SortOrder = Enum.SortOrder.LayoutOrder,
     })
     New("UIPadding", {
-        PaddingTop = UDim.new(0, 8), PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 8), PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 9),
         Parent = TabBar,
     })
 
     local PageHolder = New("Frame", {
         Name = "Pages",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 130, 0, 44),
-        Size = UDim2.new(1, -130, 1, -44),
+        Position = UDim2.new(0, 132, 0, 46),
+        Size = UDim2.new(1, -132, 1, -46),
         Parent = Main,
     })
 
@@ -457,7 +516,7 @@ function ForgeUI:CreateWindow(config)
         TabBar.Visible = not minimized
         PageHolder.Visible = not minimized
         if minimized then
-            Tween(Main, { Size = UDim2.new(size.X.Scale, size.X.Offset, 0, 44) }, 0.22)
+            Tween(Main, { Size = UDim2.new(size.X.Scale, size.X.Offset, 0, 46) }, 0.22)
         else
             Tween(Main, { Size = size }, 0.22)
         end
@@ -488,19 +547,32 @@ function ForgeUI:CreateWindow(config)
         local TabButton = New("TextButton", {
             BackgroundColor3 = Theme.Elevated,
             BackgroundTransparency = firstTab and 0 or 1,
-            Size = UDim2.new(1, 0, 0, 32),
+            Size = UDim2.new(1, 0, 0, 34),
             Font = firstTab and Theme.FontBold or Theme.Font,
             Text = name,
             TextColor3 = firstTab and Theme.Text or Theme.SubText,
             TextSize = 13,
             Parent = TabBar,
         })
-        New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = TabButton })
+        New("UICorner", { CornerRadius = UDim.new(0, 7), Parent = TabButton })
+        -- شريط تمييز رفيع على يسار التبويب النشط، بدل ما يكون الفرق مجرد لون خلفية
+        local TabAccent = New("Frame", {
+            BackgroundColor3 = Theme.Accent,
+            BackgroundTransparency = firstTab and 0 or 1,
+            AnchorPoint = Vector2.new(0, 0.5),
+            Position = UDim2.new(0, 2, 0.5, 0),
+            Size = UDim2.new(0, 3, 0.56, 0),
+            ZIndex = 2,
+            Parent = TabButton,
+        })
+        New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = TabAccent })
+
+        local TabIcon
         if cfg.Icon then
             New("UIPadding", { PaddingLeft = UDim.new(0, 26), Parent = TabButton })
-            New("ImageLabel", {
+            TabIcon = New("ImageLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 8, 0.5, -8),
+                Position = UDim2.new(0, 9, 0.5, -8),
                 Size = UDim2.new(0, 16, 0, 16),
                 Image = cfg.Icon,
                 ImageColor3 = firstTab and Theme.Text or Theme.SubText,
@@ -533,7 +605,7 @@ function ForgeUI:CreateWindow(config)
 
         firstTab = false
 
-        local Tab = { Button = TabButton, Page = Page }
+        local Tab = { Button = TabButton, Page = Page, Accent = TabAccent, Icon = TabIcon }
         table.insert(Window.Tabs, Tab)
 
         TabButton.MouseButton1Click:Connect(function()
@@ -541,10 +613,14 @@ function ForgeUI:CreateWindow(config)
                 t.Page.Visible = false
                 t.Button.Font = Theme.Font
                 Tween(t.Button, { BackgroundTransparency = 1, TextColor3 = Theme.SubText }, 0.15)
+                Tween(t.Accent, { BackgroundTransparency = 1 }, 0.15)
+                if t.Icon then Tween(t.Icon, { ImageColor3 = Theme.SubText }, 0.15) end
             end
             Page.Visible = true
             TabButton.Font = Theme.FontBold
             Tween(TabButton, { BackgroundTransparency = 0, TextColor3 = Theme.Text }, 0.15)
+            Tween(TabAccent, { BackgroundTransparency = 0 }, 0.15)
+            if TabIcon then Tween(TabIcon, { ImageColor3 = Theme.Text }, 0.15) end
         end)
 
         function Tab:CreateSection(sectionName)
@@ -560,15 +636,29 @@ function ForgeUI:CreateWindow(config)
                 SortOrder = Enum.SortOrder.LayoutOrder,
             })
             if sectionName then
-                New("TextLabel", {
+                local HeaderRow = New("Frame", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 18),
+                    Parent = Section,
+                })
+                local HeaderDot = New("Frame", {
+                    BackgroundColor3 = Theme.Accent,
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Position = UDim2.new(0, 2, 0.5, 0),
+                    Size = UDim2.new(0, 5, 0, 5),
+                    Parent = HeaderRow,
+                })
+                New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = HeaderDot })
+                New("TextLabel", {
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 14, 0, 0),
+                    Size = UDim2.new(1, -14, 1, 0),
                     Font = Theme.FontBold,
                     Text = sectionName,
                     TextColor3 = Theme.SubText,
                     TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = Section,
+                    Parent = HeaderRow,
                 })
             end
 
@@ -584,19 +674,23 @@ function ForgeUI:CreateWindow(config)
                     ClipsDescendants = true,
                     Parent = Section,
                 })
-                New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = Card })
-                New("UIStroke", { Color = Theme.Stroke, Thickness = 1, Parent = Card })
+                New("UICorner", { CornerRadius = UDim.new(0, 9), Parent = Card })
+                New("UIStroke", { Name = "EdgeStroke", Color = Theme.Stroke, Thickness = 1, Parent = Card })
                 return Card
             end
 
-            -- Hover highlight: wire on the topmost interactive control since it
-            -- fully covers the card and would otherwise swallow the hover events.
+            -- Hover highlight: وميض خفيف بلون التمييز على حدود الكرت مع تغيير
+            -- خلفيته، بدل تغيير اللون بس. موصول على العنصر التفاعلي الأعلى لأنه
+            -- يغطي الكرت بالكامل وبدونه الحدث ما يوصل.
             local function AttachHover(control, card)
+                local edge = card:FindFirstChild("EdgeStroke")
                 control.MouseEnter:Connect(function()
                     Tween(card, { BackgroundColor3 = Theme.Elevated }, 0.15)
+                    if edge then Tween(edge, { Color = Theme.Accent, Transparency = 0.35 }, 0.15) end
                 end)
                 control.MouseLeave:Connect(function()
                     Tween(card, { BackgroundColor3 = Theme.Container }, 0.15)
+                    if edge then Tween(edge, { Color = Theme.Stroke, Transparency = 0 }, 0.15) end
                 end)
             end
 
@@ -719,12 +813,28 @@ function ForgeUI:CreateWindow(config)
                     Parent = Track,
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Fill })
+                New("UIGradient", {
+                    Color = ColorSequence.new(Theme.Accent, Theme.AccentLight),
+                    Parent = Fill,
+                })
+                local Knob = New("Frame", {
+                    Active = false,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.new((value - min) / (max - min), 0, 0.5, 0),
+                    Size = UDim2.new(0, 14, 0, 14),
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    ZIndex = 2,
+                    Parent = Track,
+                })
+                New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Knob })
+                New("UIStroke", { Color = Theme.Accent, Thickness = 2, Parent = Knob })
 
                 local dragging = false
                 local function updateFromInput(input)
                     local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
                     value = math.floor(min + (max - min) * rel)
                     Fill.Size = UDim2.new(rel, 0, 1, 0)
+                    Knob.Position = UDim2.new(rel, 0, 0.5, 0)
                     ValueLabel.Text = tostring(value)
                     if cfg.Flag then Window.Flags[cfg.Flag] = value end
                     if cfg.Callback then cfg.Callback(value) end
