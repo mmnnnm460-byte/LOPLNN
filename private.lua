@@ -201,9 +201,11 @@ local function reportSuccess(target, rigName, skinName)
         "Ping: " .. string.format("%.2f", State.lastPing) .. "s | Backoff: " .. string.format("%.1f", State.backoff.current) .. "s")
 end
 
-local Event = ReplicatedStorage:FindFirstChild("CatalogGuiRemote")
+local Event = ReplicatedStorage:FindFirstChild("CatalogGuiRemote", true)
 
-local function findRemote() return ReplicatedStorage:FindFirstChild("CatalogGuiRemote") end
+local function findRemote()
+    return ReplicatedStorage:FindFirstChild("CatalogGuiRemote", true)
+end
 
 local function ensureRemote()
     if Event and Event.Parent then State.remoteHealthy = true; return true end
@@ -211,7 +213,7 @@ local function ensureRemote()
     if found then
         Event = found
         State.remoteHealthy = true
-        pushLog("System", "نجاح", "تم إعادة اكتشاف الريموت تلقائياً")
+        pushLog("System", "نجاح", "تم إعادة اكتشاف الريموت تلقائياً (" .. found:GetFullName() .. ")")
         notify("إعادة اتصال", "تم اكتشاف الريموت من جديد تلقائياً", 2)
         return true
     end
@@ -219,8 +221,8 @@ local function ensureRemote()
     return false
 end
 
-ReplicatedStorage.ChildAdded:Connect(function(child)
-    if child.Name == "CatalogGuiRemote" then ensureRemote() end
+ReplicatedStorage.DescendantAdded:Connect(function(descendant)
+    if descendant.Name == "CatalogGuiRemote" then ensureRemote() end
 end)
 
 task.spawn(function()
