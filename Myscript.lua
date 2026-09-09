@@ -3119,14 +3119,12 @@ local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ContentProvider = game:GetService("ContentProvider")
 local GuiService = game:GetService("GuiService")
 pcall(function() HttpService.HttpEnabled = true end)
 
 -- حدث تطبيق السكن (يُبحث عنه بأمان حتى ما يوقف السكربت لو تغيّر مساره)
 local ApplyMainAvatarEvent = ReplicatedStorage:FindFirstChild("ApplyMainAvatar")
 
--- التأكد من اكتمال تحميل اللعبة قبل أي طلب صور (يقلل مشكلة الصور الفاضية بالبداية)
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
@@ -3235,7 +3233,6 @@ local function sendToast(title, text)
     end)
 end
 
--- يفتح صفحة اللاعب بالمتصفح لو مدعوم بالمنفذ، وإلا ينسخ الرابط كحل احتياطي
 local function openPlayerProfile(userId, username)
     local link = "https://www.roblox.com/users/"..tostring(userId).."/profile"
     if username and username ~= "" then
@@ -3254,40 +3251,6 @@ local function openPlayerProfile(userId, username)
         local copied = copyToClipboard(link)
         sendToast("صفحة اللاعب", copied and "ما قدر المنفذ يفتح متصفح، نسخت الرابط بدالها" or ("افتح يدويًا: "..link))
     end
-end
-
-----------------------------------------------------------------
--- 3.5) إعادة محاولة تحميل الصور تلقائيًا لين تتحمل
-----------------------------------------------------------------
--- يفرّغ الصورة قبل إعادة تعيينها (يجبر روبلوكس يعيد طلبها بدل اعتبارها نفس الطلب الفاشل)
-local function loadImageWithRetry(imageLabel, imageId, maxAttempts, retryDelaySeconds)
-    maxAttempts = maxAttempts or 6
-    retryDelaySeconds = retryDelaySeconds or 1.5
-
-    task.spawn(function()
-        for attempt = 1, maxAttempts do
-            if not imageLabel or not imageLabel.Parent then return end
-
-            imageLabel.Image = ""
-            task.wait(0.05)
-            if not imageLabel or not imageLabel.Parent then return end
-            imageLabel.Image = imageId
-
-            local loaded = false
-            pcall(function()
-                ContentProvider:PreloadAsync({imageLabel}, function(_, status)
-                    if status == Enum.AssetFetchStatus.Success then
-                        loaded = true
-                    end
-                end)
-            end)
-
-            if loaded then return end
-            if attempt < maxAttempts then
-                task.wait(retryDelaySeconds)
-            end
-        end
-    end)
 end
 
 ----------------------------------------------------------------
@@ -3358,6 +3321,66 @@ local function httpRequest(options)
         end
     end
     return false, lastErrorMessage
+end
+
+----------------------------------------------------------------
+-- 4.5) صور اللاعبين عن طريق Thumbnails API الرسمي (مو تخمين rbxthumb)
+----------------------------------------------------------------
+-- روبلوكس يرجع state صريحة: Completed / Pending / Error / Blocked
+-- طالما Pending نعيد الطلب بعد فترة بسيطة لين يجهز، بدل ما نخمّن
+local THUMBNAIL_ENDPOINTS = {
+    headshot = "https://thumbnails.roblox.com/v1/users/avatar-headshot",
+    body = "https://thumbnails.roblox.com/v1/users/avatar",
+}
+
+local function fetchThumbnailUrl(userId, kind, size, maxPendingRetries)
+    maxPendingRetries = maxPendingRetries or 5
+    local endpoint = THUMBNAIL_ENDPOINTS[kind]
+    if not endpoint then return nil end
+
+    for attempt = 1, maxPendingRetries do
+        local url = endpoint.."?userIds="..tostring(userId).."&size="..size.."&format=Png&isCircular=false"
+        local ok, res = httpRequest({Url = url, Method = "GET"})
+        if ok then
+            local decodeOk, data = safeDecode(res)
+            if decodeOk and data.data and data.data[1] then
+                local entry = data.data[1]
+                if entry.state == "Completed" and entry.imageUrl then
+                    return entry.imageUrl
+                elseif entry.state == "Error" or entry.state == "Blocked" then
+                    return nil
+                end
+                -- state == "Pending": ننتظر شوي والصورة تكون جاهزة بروبلوكس، ونعيد المحاولة
+            end
+        end
+        if attempt < maxPendingRetries then
+            task.wait(0.8)
+        end
+    end
+    return nil
+end
+
+-- يحمّل صورة لاعب على ImageLabel معين، ولو تعذر الحصول على رابط حقيقي
+-- يرجع لطريقة rbxthumb القديمة كحل احتياطي أخير
+local function loadPlayerImage(imageLabel, userId, kind, size, fallbackRbxthumb)
+    task.spawn(function()
+        if not imageLabel or not imageLabel.Parent then return end
+        local realUrl = fetchThumbnailUrl(userId, kind, size, 5)
+        if not imageLabel or not imageLabel.Parent then return end
+
+        if realUrl then
+            imageLabel.Image = realUrl
+        else
+            for attempt = 1, 3 do
+                if not imageLabel or not imageLabel.Parent then return end
+                imageLabel.Image = ""
+                task.wait(0.05)
+                if not imageLabel or not imageLabel.Parent then return end
+                imageLabel.Image = fallbackRbxthumb
+                task.wait(1.2)
+            end
+        end
+    end)
 end
 
 ----------------------------------------------------------------
@@ -3618,8 +3641,11 @@ local pendingSkinDeleteConfirm = false
 -- 9) دوال مساعدة للـ GUI
 ----------------------------------------------------------------
 local function updateScrollCanvas(scroll, layout)
+    -- ما عاد نعتمد عليها كليًا؛ AutomaticCanvasSize يحسب الحجم تلقائيًا وبدقة
     task.spawn(function()
-        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+        if scroll.AutomaticCanvasSize == Enum.AutomaticSize.None then
+            scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+        end
     end)
 end
 
@@ -3655,6 +3681,8 @@ local function createScrollPanel(parentGui, titleText, size, position)
     scroll.ScrollBarThickness = 4
     scroll.ScrollBarImageColor3 = UI_WHITE
     scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    -- (محدّث) الحجم يُحسب تلقائيًا من المحتوى الفعلي، عشان تقدر تنزل لآخر القائمة دايمًا
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
     scroll.ZIndex = 2
     scroll.Parent = panel
 
@@ -3693,7 +3721,6 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
 
     applyGlossyDark(entry, UI_CARD_BLACK)
 
-    -- (محدّث) صورة الأفاتار الآن زر قابل للضغط يفتح صفحة اللاعب
     local img = Instance.new("ImageButton")
     img.Size = UDim2.new(0, avatarSize, 0, avatarSize)
     img.Position = UDim2.new(0, 4, 0.5, -avatarSize / 2)
@@ -3706,7 +3733,8 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
     imgCorner.CornerRadius = UDim.new(0, avatarSize / 2)
     imgCorner.Parent = img
 
-    loadImageWithRetry(img, "rbxthumb://type=AvatarHeadShot&id="..id.."&w=150&h=150", 4, 1.2)
+    -- تحميل صورة الأفاتار عن طريق Thumbnails API الرسمي
+    loadPlayerImage(img, id, "headshot", "150x150", "rbxthumb://type=AvatarHeadShot&id="..id.."&w=150&h=150")
 
     img.MouseButton1Click:Connect(function()
         openPlayerProfile(id, copyValue)
@@ -4022,8 +4050,8 @@ local function applySearchResult(data)
         wearingAssetIds = data.wearingAssetIds,
     }
 
-    loadImageWithRetry(AvatarImage, "rbxthumb://type=AvatarHeadShot&id="..user.id.."&w=420&h=420", 6, 1.5)
-    loadImageWithRetry(FullBodyImage, "rbxthumb://type=Avatar&id="..user.id.."&w=420&h=420", 6, 1.5)
+    loadPlayerImage(AvatarImage, user.id, "headshot", "420x420", "rbxthumb://type=AvatarHeadShot&id="..user.id.."&w=420&h=420")
+    loadPlayerImage(FullBodyImage, user.id, "body", "420x420", "rbxthumb://type=Avatar&id="..user.id.."&w=420&h=420")
 
     NameLabel:Set("الاسم الظاهر: "..user.displayName)
     UsernameLabel:Set("اسم المستخدم: @"..user.name)
@@ -4335,7 +4363,6 @@ Instance.new("UICorner", AvatarFrame).CornerRadius = UDim.new(0, 12)
 applyGlossyDark(AvatarFrame, UI_BASE_BLACK)
 applySilverSpinBorder(AvatarFrame, 2)
 
--- (محدّث) صورة المعاينة الكبيرة الآن زر قابل للضغط
 AvatarImage = Instance.new("ImageButton")
 AvatarImage.Name = "TargetAvatar"
 AvatarImage.Size = UDim2.new(1, -10, 1, -10)
@@ -4618,9 +4645,6 @@ SettingsTab:CreateSlider({
     Callback = function(value) CACHE_TTL = value end,
 })
 
-----------------------------------------------------------------
--- 14) تحميل البيانات المحفوظة عند بدء التشغيل
-----------------------------------------------------------------
 
 local MainTab = Window:CreateTab("الرئيسية", 44833627458)
 
