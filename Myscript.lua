@@ -3082,6 +3082,27 @@ end)
 end)
 
 task.spawn(function()
+if _G.PromptConnection then
+    _G.PromptConnection:Disconnect()
+    _G.PromptConnection = nil
+end
+
+local function makeInstant(obj)
+    if obj:IsA("ProximityPrompt") then
+        obj.HoldDuration = 0
+    end
+end
+
+for _, obj in ipairs(workspace:GetDescendants()) do
+    makeInstant(obj)
+end
+
+_G.PromptConnection = workspace.DescendantAdded:Connect(function(newObj)
+    makeInstant(newObj)
+end)
+end)
+
+task.spawn(function()
 ----------------------------------------------------------------
 -- 1) تحميل Rayfield + إعداد الخدمات
 ----------------------------------------------------------------
@@ -3098,6 +3119,7 @@ local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ContentProvider = game:GetService("ContentProvider")
 pcall(function() HttpService.HttpEnabled = true end)
 
 -- حدث تطبيق السكن (يُبحث عنه بأمان حتى ما يوقف السكربت لو تغيّر مساره)
@@ -3205,6 +3227,38 @@ end
 local function sendToast(title, text)
     pcall(function()
         StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = 5})
+    end)
+end
+
+----------------------------------------------------------------
+-- 3.5) إعادة محاولة تحميل الصور تلقائيًا لين تتحمل
+----------------------------------------------------------------
+-- يحاول تحميل صورة (أفاتار/جسم كامل/صور الصفوف) عدة مرات بدل ما تضل فاضية
+-- لو PreloadAsync ما دعمها المنفذ، بيستمر بإعادة تعيين الصورة كمحاولة احتياطية
+local function loadImageWithRetry(imageLabel, imageId, maxAttempts, retryDelaySeconds)
+    maxAttempts = maxAttempts or 6
+    retryDelaySeconds = retryDelaySeconds or 1.5
+
+    task.spawn(function()
+        for attempt = 1, maxAttempts do
+            if not imageLabel or not imageLabel.Parent then return end
+
+            imageLabel.Image = imageId
+
+            local loaded = false
+            pcall(function()
+                ContentProvider:PreloadAsync({imageLabel}, function(_, status)
+                    if status == Enum.AssetFetchStatus.Success then
+                        loaded = true
+                    end
+                end)
+            end)
+
+            if loaded then return end
+            if attempt < maxAttempts then
+                task.wait(retryDelaySeconds)
+            end
+        end
     end)
 end
 
@@ -3525,11 +3579,16 @@ local friendsSortOnlineFirst = false
 local friendsWatchEnabled = false
 local FRIENDS_WATCH_INTERVAL = 25
 
--- (جديد) خاص بتبويب تطبيق السكن
+-- خاص بتبويب تطبيق السكن
 local SkinApplyStatusLabel, SkinHistoryDropdown
 local skinApplyInputValue = ""
 local skinHistory = {}
 local applySkinToSelf -- تُعرَّف فعليًا بالقسم 10.5، متاحة هنا مسبقاً عشان صفوف اللاعبين تقدر تستدعيها
+
+-- خاص بحذف سكن أو أكثر من السجل (تأكيد بضغطتين)
+local DeleteSkinDropdown
+local deleteSkinSelection = {}
+local pendingSkinDeleteConfirm = false
 
 ----------------------------------------------------------------
 -- 9) دوال مساعدة للـ GUI
@@ -3617,12 +3676,14 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
     img.Position = UDim2.new(0, 4, 0.5, -avatarSize / 2)
     img.BackgroundTransparency = 1
     img.ZIndex = 3
-    img.Image = "rbxthumb://type=AvatarHeadShot&id="..id.."&w=150&h=150"
     img.Parent = entry
 
     local imgCorner = Instance.new("UICorner")
     imgCorner.CornerRadius = UDim.new(0, avatarSize / 2)
     imgCorner.Parent = img
+
+    -- تحميل صورة الأفاتار مع إعادة محاولة تلقائية لين تتحمل
+    loadImageWithRetry(img, "rbxthumb://type=AvatarHeadShot&id="..id.."&w=150&h=150", 4, 1.2)
 
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(1, reservedWidth, 0, isFriendRow and 14 or 20)
@@ -3663,7 +3724,7 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
         applySilverSpinBorder(entry, 1.5)
     end
 
-    -- (جديد) زر تطبيق السكن - يسار زر النسخ
+    -- زر تطبيق السكن - يسار زر النسخ
     local applyButton = Instance.new("TextButton")
     applyButton.Size = UDim2.new(0, btnW, 0, btnH)
     applyButton.Position = UDim2.new(1, -(btnW * 2 + 10), 0.5, -btnH / 2)
@@ -3815,7 +3876,7 @@ local function refreshFavoritesDropdown()
 end
 
 ----------------------------------------------------------------
--- 10.5) سجل تطبيق السكنات (Skin History) + تطبيق السكن فعليًا
+-- 10.5) سجل تطبيق السكنات (Skin History) + تطبيق/حذف السكن
 ----------------------------------------------------------------
 local SKIN_HISTORY_FILE = "player_lookup_skin_history.json"
 
@@ -3836,6 +3897,7 @@ local function saveSkinHistory()
     pcall(writefile, SKIN_HISTORY_FILE, HttpService:JSONEncode(skinHistory))
 end
 
+-- يحدّث قائمة "تطبيق" وقائمة "حذف" مع بعض، عشان يضلوا متزامنين دايمًا
 local function refreshSkinHistoryDropdown()
     local options = {}
     for _, entry in ipairs(skinHistory) do
@@ -3843,6 +3905,12 @@ local function refreshSkinHistoryDropdown()
     end
     if #options == 0 then options = {"لا يوجد بعد"} end
     pcall(function() SkinHistoryDropdown:Refresh(options) end)
+    pcall(function() DeleteSkinDropdown:Refresh(options) end)
+end
+
+-- يشيل لاحقة العدّاد " (xN)" من نص عنصر بالقائمة، عشان نرجع الاسم الخام
+local function stripSkinCountSuffix(text)
+    return (text:gsub("%s*%(x%d+%)$", ""))
 end
 
 -- يسجل تطبيق سكن جديد: لو اليوزر موجود يزيد العداد فقط، ولو جديد يضيفه
@@ -3864,6 +3932,27 @@ local function recordSkinApplication(username)
     table.sort(skinHistory, function(a, b) return a.count > b.count end)
     saveSkinHistory()
     refreshSkinHistoryDropdown()
+end
+
+-- يحذف سكن واحد أو أكثر من السجل دفعة وحدة، ويرجّع عدد اللي انحذف فعليًا
+local function deleteSkinHistoryEntries(rawNames)
+    if #rawNames == 0 then return 0 end
+    local toDelete = {}
+    for _, n in ipairs(rawNames) do toDelete[n:lower()] = true end
+
+    local kept = {}
+    local deletedCount = 0
+    for _, entry in ipairs(skinHistory) do
+        if toDelete[entry.name:lower()] then
+            deletedCount += 1
+        else
+            table.insert(kept, entry)
+        end
+    end
+    skinHistory = kept
+    saveSkinHistory()
+    refreshSkinHistoryDropdown()
+    return deletedCount
 end
 
 -- تطبيق سكن لاعب على نفسي فورًا وبدون أي تأخير أو انتظار
@@ -3914,8 +4003,9 @@ local function applySearchResult(data)
         wearingAssetIds = data.wearingAssetIds,
     }
 
-    AvatarImage.Image = "rbxthumb://type=AvatarHeadShot&id="..user.id.."&w=420&h=420"
-    FullBodyImage.Image = "rbxthumb://type=Avatar&id="..user.id.."&w=420&h=420"
+    loadImageWithRetry(AvatarImage, "rbxthumb://type=AvatarHeadShot&id="..user.id.."&w=420&h=420", 6, 1.5)
+    loadImageWithRetry(FullBodyImage, "rbxthumb://type=Avatar&id="..user.id.."&w=420&h=420", 6, 1.5)
+
     NameLabel:Set("الاسم الظاهر: "..user.displayName)
     UsernameLabel:Set("اسم المستخدم: @"..user.name)
     IdLabel:Set("المعرف: "..tostring(user.id))
@@ -4178,7 +4268,6 @@ Tab:CreateButton({
     end,
 })
 
--- (جديد) زر تطبيق سكن اللاعب المعروض حاليًا على نفسك مباشرة
 Tab:CreateButton({
     Name = "تطبيق سكن هذا اللاعب على نفسي",
     Callback = function()
@@ -4410,7 +4499,7 @@ BatchToggleButton = BatchTab:CreateButton({
 })
 
 ----------------------------------------------------------------
--- (جديد) تبويب ثالث: تطبيق سكن لاعب على نفسك مباشرة
+-- تبويب ثالث: تطبيق سكن لاعب على نفسك + سجل + حذف
 ----------------------------------------------------------------
 local SkinTab = Window:CreateTab("تطبيق السكن", nil)
 
@@ -4440,8 +4529,54 @@ SkinHistoryDropdown = SkinTab:CreateDropdown({
     Callback = function(selected)
         local pick = type(selected) == "table" and selected[1] or selected
         if pick and pick ~= "لا يوجد بعد" then
-            local rawName = pick:gsub("%s*%(x%d+%)$", "")
-            applySkinToSelf(rawName)
+            applySkinToSelf(stripSkinCountSuffix(pick))
+        end
+    end,
+})
+
+-- (جديد) اختيار متعدد لحذف أكثر من سكن من السجل + زر حذف بتأكيد مزدوج
+DeleteSkinDropdown = SkinTab:CreateDropdown({
+    Name = "اختر سكن أو أكثر للحذف من السجل",
+    Options = {"لا يوجد بعد"},
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(selected)
+        deleteSkinSelection = type(selected) == "table" and selected or {selected}
+    end,
+})
+
+SkinTab:CreateButton({
+    Name = "حذف السكنات المحددة",
+    Callback = function()
+        local realSelection = {}
+        for _, item in ipairs(deleteSkinSelection) do
+            if item and item ~= "لا يوجد بعد" then table.insert(realSelection, item) end
+        end
+
+        if #realSelection == 0 then
+            SkinApplyStatusLabel:Set("اختر سكن واحد أو أكثر من القائمة أولاً")
+            return
+        end
+
+        if not pendingSkinDeleteConfirm then
+            -- الضغطة الأولى: تحذير فقط
+            pendingSkinDeleteConfirm = true
+            SkinApplyStatusLabel:Set("متأكد تبي تحذف "..#realSelection.." سكن؟ اضغط الزر مرة ثانية للتأكيد خلال 8 ثواني")
+            sendToast("تأكيد الحذف", "اضغط زر الحذف مرة ثانية للتأكيد")
+            task.delay(8, function()
+                pendingSkinDeleteConfirm = false
+            end)
+        else
+            -- الضغطة الثانية: تنفيذ الحذف فعليًا
+            pendingSkinDeleteConfirm = false
+            local rawNames = {}
+            for _, item in ipairs(realSelection) do
+                table.insert(rawNames, stripSkinCountSuffix(item))
+            end
+            local deletedCount = deleteSkinHistoryEntries(rawNames)
+            deleteSkinSelection = {}
+            pcall(function() DeleteSkinDropdown:Set({}) end)
+            SkinApplyStatusLabel:Set("تم حذف "..deletedCount.." سكن من السجل")
         end
     end,
 })
