@@ -1,21 +1,6 @@
 local myUrl = "https://raw.githubusercontent.com/mmnnnm460-byte/LOPLNN/refs/heads/main/"
 local file = "Meow.lua" 
-
-
-local encryptedKeyBytes = {116, 111, 107, 75, 48, 55} 
-local keySecret = {18, 14, 5, 22, 10, 48}
-
-local function getDecryptedKey()
-    local result = {}
-    for i = 1, #encryptedKeyBytes do
-        local k = keySecret[((i - 1) % #keySecret) + 1]
-        local decryptedByte = bit32.bxor(encryptedKeyBytes[i], k)
-        table.insert(result, string.char(decryptedByte))
-    end
-    return table.concat(result)
-end
-
-local targetKey = getDecryptedKey()
+local targetKey = "Disc_77" 
 
 
 local encryptedData = {234, 239, 238, 237, 234, 137, 182, 178, 219, 218, 222, 212, 222, 217, 215, 175, 210, 220, 212, 182, 208, 211, 218, 176, 230, 210, 215, 223, 214, 214, 208, 218, 182, 162, 162, 163, 160, 162, 163, 167, 160, 162, 162, 163, 163, 160, 161, 167, 163, 165, 160, 162, 182, 237, 213, 231, 225, 182, 218, 214, 233, 223, 188, 212, 240, 221, 162, 211, 232, 164, 215, 228, 161, 223, 220, 161, 227, 231, 186, 226, 234, 185, 161, 228, 238, 228, 239, 161, 213, 220, 213, 230, 208, 220, 221, 222, 233, 226, 215, 163, 213, 229, 217, 231, 230, 223, 161, 229, 231, 234, 222, 228, 233, 231, 222}
@@ -82,12 +67,15 @@ end
 
 local function loadMainScript()
     local success, err = pcall(function()
+        local fullUrl = myUrl .. file
+        print("Fetching script from: " .. fullUrl)
+        
         local response = performRawRequest({
-            Url = myUrl .. file,
+            Url = fullUrl,
             Method = "GET"
         })
         
-        local rawCode = (response and response.Body) or game:HttpGet(myUrl .. file)
+        local rawCode = (response and response.Body) or game:HttpGet(fullUrl)
         
         if rawCode and #rawCode > 0 and not rawCode:find("404: Not Found") then
             local executable, compileErr = loadstring(rawCode)
@@ -132,7 +120,7 @@ local function createKeySystemUI()
     Title.TextSize = 16
     Title.BackgroundTransparency = 1
 
-    KeyBox.Parent = MainFrame
+    KeyBox.Parent = MainFooter or MainFrame
     KeyBox.Position = UDim2.new(0.1, 0, 0.35, 0)
     KeyBox.Size = UDim2.new(0.8, 0, 0, 35)
     KeyBox.PlaceholderText = "Paste key here..."
@@ -156,7 +144,10 @@ local function createKeySystemUI()
     BtnCorner.Parent = SubmitBtn
 
     SubmitBtn.MouseButton1Click:Connect(function()
-        if KeyBox.Text == targetKey then
+        
+        local userKey = KeyBox.Text:gsub("^%s*(.-)%s*$", "%1")
+        
+        if userKey == targetKey then
             ScreenGui:Destroy()
             loadMainScript()
         else
