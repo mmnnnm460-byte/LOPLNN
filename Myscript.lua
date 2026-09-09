@@ -4593,6 +4593,227 @@ SettingsTab:CreateSlider({
     Callback = function(value) CACHE_TTL = value end,
 })
 
+
+local MainTab = Window:CreateTab("الرئيسية", 44833627458)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local selectedPlayers = {}
+local morphPlayers = {}
+local autoKillEnabled = false
+local attackDistance = 25
+local hitsPerFrame = 25
+
+local function getPlayerList()
+    local playerNames = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(playerNames, player.Name)
+        end
+    end
+    return playerNames
+end
+
+MainTab:CreateSection("إعدادات القتال والدمج")
+
+local TargetDisplay = MainTab:CreateParagraph({
+    Title = "اللاعبين المحددين:",
+    Content = "لا يوجد لاعب محدد حالياً"
+})
+
+local function updateTargetDisplay()
+    if #selectedPlayers == 0 then
+        TargetDisplay:Set({Title = "اللاعبين المحددين:", Content = "لا يوجد لاعب محدد حالياً"})
+    else
+        TargetDisplay:Set({Title = "اللاعبين المحددين (" .. #selectedPlayers .. "):", Content = table.concat(selectedPlayers, ", ")})
+    end
+end
+
+local PlayerDropdown = MainTab:CreateDropdown({
+    Name = "اختر اللاعبين للقتال",
+    Options = getPlayerList(),
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options)
+        selectedPlayers = Options
+        updateTargetDisplay()
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "مسافة الهجوم (Attack Distance)",
+    Range = {5, 100},
+    Increment = 1,
+    Suffix = "Studs",
+    CurrentValue = 25,
+    Flag = "DistanceSlider", 
+    Callback = function(Value)
+        attackDistance = Value
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "شدة الضربات (Hits Per Frame)",
+    Range = {5, 100},
+    Increment = 5,
+    Suffix = "Hits",
+    CurrentValue = 25,
+    Flag = "HitSpamSlider", 
+    Callback = function(Value)
+        hitsPerFrame = Value
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "تفعيل القتل الفوري (Instakill Multi-Target)",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoKillEnabled = Value
+    end,
+})
+
+MainTab:CreateSection("إعدادات السكنات والمورف")
+
+MainTab:CreateButton({
+    Name = "تطبيق سكن (segaune)",
+    Callback = function()
+        local Event = ReplicatedStorage:FindFirstChild("ApplyMainAvatar")
+        if Event then
+            Event:FireServer("segaune")
+        end
+    end,
+})
+
+local MorphDropdown = MainTab:CreateDropdown({
+    Name = "اللاعبين الحاملين للسكن (Morph)",
+    Options = {"جاري الفحص..."},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Callback = function(Option)
+    end,
+})
+
+local function updateMorphList()
+    local found = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local char = player.Character
+            if char:FindFirstChild("Morph") then
+                table.insert(found, player.Name)
+            end
+        end
+    end
+
+    morphPlayers = found
+
+    if #morphPlayers == 0 then
+        MorphDropdown:Refresh({"لا يوجد لاعبين بسكن حالياً"}, true)
+    else
+        MorphDropdown:Refresh(morphPlayers, true)
+    end
+end
+
+MainTab:CreateButton({
+    Name = "تحديث قائمة المورف يدوياً",
+    Callback = function()
+        updateMorphList()
+    end,
+})
+
+local function updateDropdowns()
+    local newList = getPlayerList()
+    local validSelections = {}
+    for _, name in ipairs(selectedPlayers) do
+        if Players:FindFirstChild(name) then
+            table.insert(validSelections, name)
+        end
+    end
+    selectedPlayers = validSelections
+    PlayerDropdown:Set(selectedPlayers)
+    PlayerDropdown:Refresh(newList, true)
+    updateTargetDisplay()
+    updateMorphList()
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        updateDropdowns()
+    end)
+end)
+
+Players.PlayerRemoving:Connect(updateDropdowns)
+
+task.spawn(function()
+    while true do
+        updateMorphList()
+        task.wait(2)
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if not autoKillEnabled or #selectedPlayers == 0 then return end
+
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+
+    for _, targetName in ipairs(selectedPlayers) do
+        local targetPlayer = Players:FindFirstChild(targetName)
+        
+        if targetPlayer and targetPlayer.Character then
+            local char = targetPlayer.Character
+            local targetHumanoid = char:FindFirstChildOfClass("Humanoid")
+            local targetRoot = char:FindFirstChild("HumanoidRootPart")
+            local targetHead = char:FindFirstChild("Head")
+            
+            local isAlive = targetHumanoid 
+                and targetHumanoid.Health > 0 
+                and targetHumanoid:GetState() ~= Enum.HumanoidStateType.Dead 
+                and targetRoot 
+                and targetHead 
+                and targetHead:IsDescendantOf(char)
+
+            if isAlive then
+                local distance = (myPos - targetRoot.Position).Magnitude
+
+                if distance <= attackDistance then
+                    local sword = LocalPlayer.Character:FindFirstChild("Sword") or LocalPlayer.Backpack:FindFirstChild("Sword")
+                    
+                    if sword then
+                        if sword.Parent == LocalPlayer.Backpack then
+                            LocalPlayer.Character.Humanoid:EquipTool(sword)
+                        end
+
+                        local beamRemote = sword:FindFirstChild("BeamRemote")
+                        local handle = sword:FindFirstChild("Handle")
+
+                        for i = 1, hitsPerFrame do
+                            sword:Activate()
+
+                            if beamRemote then
+                                pcall(function()
+                                    beamRemote:FireServer(targetHead.Position, char)
+                                    beamRemote:FireServer(targetRoot.Position, char)
+                                end)
+                            end
+
+                            if handle then
+                                firetouchinterest(handle, targetHead, 0)
+                                firetouchinterest(handle, targetHead, 1)
+                                firetouchinterest(handle, targetRoot, 0)
+                                firetouchinterest(handle, targetRoot, 1)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
 ----------------------------------------------------------------
 -- 14) تحميل البيانات المحفوظة عند بدء التشغيل
 ----------------------------------------------------------------
