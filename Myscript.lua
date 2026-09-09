@@ -3120,10 +3120,16 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContentProvider = game:GetService("ContentProvider")
+local GuiService = game:GetService("GuiService")
 pcall(function() HttpService.HttpEnabled = true end)
 
 -- حدث تطبيق السكن (يُبحث عنه بأمان حتى ما يوقف السكربت لو تغيّر مساره)
 local ApplyMainAvatarEvent = ReplicatedStorage:FindFirstChild("ApplyMainAvatar")
+
+-- التأكد من اكتمال تحميل اللعبة قبل أي طلب صور (يقلل مشكلة الصور الفاضية بالبداية)
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
 
 ----------------------------------------------------------------
 -- 2) ألوان الثيم (أسود + أبيض + لامع)
@@ -3145,7 +3151,6 @@ local function applyGlossyDark(instance, baseColor)
     return gradient
 end
 
--- بدون أي تأثير ليزر
 local function addLaserScanEffect(panel)
     -- لا شيء
 end
@@ -3230,11 +3235,31 @@ local function sendToast(title, text)
     end)
 end
 
+-- يفتح صفحة اللاعب بالمتصفح لو مدعوم بالمنفذ، وإلا ينسخ الرابط كحل احتياطي
+local function openPlayerProfile(userId, username)
+    local link = "https://www.roblox.com/users/"..tostring(userId).."/profile"
+    if username and username ~= "" then
+        link = link.."?username="..HttpService:UrlEncode(username)
+    end
+
+    local openedInBrowser = false
+    pcall(function()
+        GuiService:OpenBrowserWindow(link)
+        openedInBrowser = true
+    end)
+
+    if openedInBrowser then
+        sendToast("صفحة اللاعب", "جاري فتح صفحة "..(username or ""))
+    else
+        local copied = copyToClipboard(link)
+        sendToast("صفحة اللاعب", copied and "ما قدر المنفذ يفتح متصفح، نسخت الرابط بدالها" or ("افتح يدويًا: "..link))
+    end
+end
+
 ----------------------------------------------------------------
 -- 3.5) إعادة محاولة تحميل الصور تلقائيًا لين تتحمل
 ----------------------------------------------------------------
--- يحاول تحميل صورة (أفاتار/جسم كامل/صور الصفوف) عدة مرات بدل ما تضل فاضية
--- لو PreloadAsync ما دعمها المنفذ، بيستمر بإعادة تعيين الصورة كمحاولة احتياطية
+-- يفرّغ الصورة قبل إعادة تعيينها (يجبر روبلوكس يعيد طلبها بدل اعتبارها نفس الطلب الفاشل)
 local function loadImageWithRetry(imageLabel, imageId, maxAttempts, retryDelaySeconds)
     maxAttempts = maxAttempts or 6
     retryDelaySeconds = retryDelaySeconds or 1.5
@@ -3243,6 +3268,9 @@ local function loadImageWithRetry(imageLabel, imageId, maxAttempts, retryDelaySe
         for attempt = 1, maxAttempts do
             if not imageLabel or not imageLabel.Parent then return end
 
+            imageLabel.Image = ""
+            task.wait(0.05)
+            if not imageLabel or not imageLabel.Parent then return end
             imageLabel.Image = imageId
 
             local loaded = false
@@ -3524,7 +3552,7 @@ local function getPresenceBatch(ids)
     return map
 end
 
--- تاريخ الأسماء السابقة (Username History) - يفيد لمعرفة لو اللاعب غيّر يوزره قبل
+-- تاريخ الأسماء السابقة (Username History)
 local function getUsernameHistory(userId)
     local ok, res = httpRequest({
         Url = "https://users.roblox.com/v1/users/"..userId.."/username-history?limit=10&sortOrder=Desc",
@@ -3540,7 +3568,7 @@ local function getUsernameHistory(userId)
     return names
 end
 
--- الملابس/العناصر المرتداة حالياً (بديل قانوني عن "لبس السكن" اللي روبلوكس منعها من الكلاينت)
+-- الملابس/العناصر المرتداة حالياً
 local function getCurrentlyWearing(userId)
     local ok, res = httpRequest({
         Url = "https://avatar.roblox.com/v1/users/"..userId.."/currently-wearing",
@@ -3570,22 +3598,18 @@ local currentUser = nil
 local recentSearches = {}
 local MAX_RECENT = 8
 
--- حالة فلترة/ترتيب قائمة الأصدقاء + بيانات آخر تحميل لها
 local lastFriendsRaw, lastFriendsUsersMap, lastFriendsPresenceMap = {}, {}, {}
 local friendsFilterText = ""
 local friendsSortOnlineFirst = false
 
--- تتبع تغييرات أصدقاء اللاعب المبحوث عنه (إضافة/حذف) بالخلفية
 local friendsWatchEnabled = false
 local FRIENDS_WATCH_INTERVAL = 25
 
--- خاص بتبويب تطبيق السكن
 local SkinApplyStatusLabel, SkinHistoryDropdown
 local skinApplyInputValue = ""
 local skinHistory = {}
-local applySkinToSelf -- تُعرَّف فعليًا بالقسم 10.5، متاحة هنا مسبقاً عشان صفوف اللاعبين تقدر تستدعيها
+local applySkinToSelf
 
--- خاص بحذف سكن أو أكثر من السجل (تأكيد بضغطتين)
 local DeleteSkinDropdown
 local deleteSkinSelection = {}
 local pendingSkinDeleteConfirm = false
@@ -3642,14 +3666,12 @@ local function createScrollPanel(parentGui, titleText, size, position)
 end
 
 local function createPlayerRow(parent, layout, id, displayName, usernameText, copyValue, isFriendRow)
-    -- صفوف الأصدقاء أصغر من صفوف البحث الجماعي
     local rowHeight = isFriendRow and 34 or 46
     local avatarSize = isFriendRow and 26 or 36
     local nameSize = isFriendRow and 11 or 13
     local userSize = isFriendRow and 9 or 12
     local btnW = isFriendRow and 26 or 34
     local btnH = isFriendRow and 22 or 28
-    -- فيه زرّين الآن (نسخ + تطبيق) بدل زر وحد، فحجزنا مساحة أكبر للاسم واليوزر
     local reservedWidth = -(avatarSize + 8 + (btnW * 2 + 4) + 14)
 
     local entry = Instance.new("Frame")
@@ -3671,10 +3693,12 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
 
     applyGlossyDark(entry, UI_CARD_BLACK)
 
-    local img = Instance.new("ImageLabel")
+    -- (محدّث) صورة الأفاتار الآن زر قابل للضغط يفتح صفحة اللاعب
+    local img = Instance.new("ImageButton")
     img.Size = UDim2.new(0, avatarSize, 0, avatarSize)
     img.Position = UDim2.new(0, 4, 0.5, -avatarSize / 2)
     img.BackgroundTransparency = 1
+    img.AutoButtonColor = false
     img.ZIndex = 3
     img.Parent = entry
 
@@ -3682,8 +3706,11 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
     imgCorner.CornerRadius = UDim.new(0, avatarSize / 2)
     imgCorner.Parent = img
 
-    -- تحميل صورة الأفاتار مع إعادة محاولة تلقائية لين تتحمل
     loadImageWithRetry(img, "rbxthumb://type=AvatarHeadShot&id="..id.."&w=150&h=150", 4, 1.2)
+
+    img.MouseButton1Click:Connect(function()
+        openPlayerProfile(id, copyValue)
+    end)
 
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(1, reservedWidth, 0, isFriendRow and 14 or 20)
@@ -3724,7 +3751,6 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
         applySilverSpinBorder(entry, 1.5)
     end
 
-    -- زر تطبيق السكن - يسار زر النسخ
     local applyButton = Instance.new("TextButton")
     applyButton.Size = UDim2.new(0, btnW, 0, btnH)
     applyButton.Position = UDim2.new(1, -(btnW * 2 + 10), 0.5, -btnH / 2)
@@ -3745,7 +3771,6 @@ local function createPlayerRow(parent, layout, id, displayName, usernameText, co
     applySilverSpinBorder(applyButton, 1.2)
 
     applyButton.MouseButton1Click:Connect(function()
-        -- copyValue هو نفس يوزر اللاعب المستخدم بزر النسخ
         if applySkinToSelf then
             applySkinToSelf(copyValue)
         end
@@ -3897,7 +3922,6 @@ local function saveSkinHistory()
     pcall(writefile, SKIN_HISTORY_FILE, HttpService:JSONEncode(skinHistory))
 end
 
--- يحدّث قائمة "تطبيق" وقائمة "حذف" مع بعض، عشان يضلوا متزامنين دايمًا
 local function refreshSkinHistoryDropdown()
     local options = {}
     for _, entry in ipairs(skinHistory) do
@@ -3908,13 +3932,10 @@ local function refreshSkinHistoryDropdown()
     pcall(function() DeleteSkinDropdown:Refresh(options) end)
 end
 
--- يشيل لاحقة العدّاد " (xN)" من نص عنصر بالقائمة، عشان نرجع الاسم الخام
 local function stripSkinCountSuffix(text)
     return (text:gsub("%s*%(x%d+%)$", ""))
 end
 
--- يسجل تطبيق سكن جديد: لو اليوزر موجود يزيد العداد فقط، ولو جديد يضيفه
--- السجل يبقى محفوظ دايمًا (ما يُمسح تلقائيًا) ومرتب من الأكثر استخدامًا للأقل
 local function recordSkinApplication(username)
     local lowerName = username:lower()
     local found
@@ -3934,7 +3955,6 @@ local function recordSkinApplication(username)
     refreshSkinHistoryDropdown()
 end
 
--- يحذف سكن واحد أو أكثر من السجل دفعة وحدة، ويرجّع عدد اللي انحذف فعليًا
 local function deleteSkinHistoryEntries(rawNames)
     if #rawNames == 0 then return 0 end
     local toDelete = {}
@@ -3955,7 +3975,6 @@ local function deleteSkinHistoryEntries(rawNames)
     return deletedCount
 end
 
--- تطبيق سكن لاعب على نفسي فورًا وبدون أي تأخير أو انتظار
 applySkinToSelf = function(username)
     username = username and username:match("^%s*(.-)%s*$") or ""
     if username == "" then
@@ -4316,14 +4335,19 @@ Instance.new("UICorner", AvatarFrame).CornerRadius = UDim.new(0, 12)
 applyGlossyDark(AvatarFrame, UI_BASE_BLACK)
 applySilverSpinBorder(AvatarFrame, 2)
 
-AvatarImage = Instance.new("ImageLabel")
+-- (محدّث) صورة المعاينة الكبيرة الآن زر قابل للضغط
+AvatarImage = Instance.new("ImageButton")
 AvatarImage.Name = "TargetAvatar"
 AvatarImage.Size = UDim2.new(1, -10, 1, -10)
 AvatarImage.Position = UDim2.new(0, 5, 0, 5)
 AvatarImage.BackgroundTransparency = 1
+AvatarImage.AutoButtonColor = false
 AvatarImage.ZIndex = 2
 AvatarImage.Parent = AvatarFrame
 Instance.new("UICorner", AvatarImage).CornerRadius = UDim.new(0, 10)
+AvatarImage.MouseButton1Click:Connect(function()
+    if currentUser then openPlayerProfile(currentUser.id, currentUser.name) end
+end)
 
 local FullBodyFrame = Instance.new("Frame")
 FullBodyFrame.Size = UDim2.new(0, 110, 0, 190)
@@ -4335,14 +4359,18 @@ Instance.new("UICorner", FullBodyFrame).CornerRadius = UDim.new(0, 12)
 applyGlossyDark(FullBodyFrame, UI_BASE_BLACK)
 applySilverSpinBorder(FullBodyFrame, 2)
 
-FullBodyImage = Instance.new("ImageLabel")
+FullBodyImage = Instance.new("ImageButton")
 FullBodyImage.Name = "TargetAvatar"
 FullBodyImage.Size = UDim2.new(1, -10, 1, -10)
 FullBodyImage.Position = UDim2.new(0, 5, 0, 5)
 FullBodyImage.BackgroundTransparency = 1
+FullBodyImage.AutoButtonColor = false
 FullBodyImage.ZIndex = 2
 FullBodyImage.Parent = FullBodyFrame
 Instance.new("UICorner", FullBodyImage).CornerRadius = UDim.new(0, 10)
+FullBodyImage.MouseButton1Click:Connect(function()
+    if currentUser then openPlayerProfile(currentUser.id, currentUser.name) end
+end)
 
 FriendsScroll, FriendsLayout, FriendsPanel, FriendsTitle = createScrollPanel(AvatarGui, "قائمة الأصدقاء", UDim2.new(0, 320, 0, 320), UDim2.new(0, 150, 0, 20))
 applyGlossyDark(FriendsPanel, UI_BASE_BLACK)
@@ -4534,7 +4562,6 @@ SkinHistoryDropdown = SkinTab:CreateDropdown({
     end,
 })
 
--- (جديد) اختيار متعدد لحذف أكثر من سكن من السجل + زر حذف بتأكيد مزدوج
 DeleteSkinDropdown = SkinTab:CreateDropdown({
     Name = "اختر سكن أو أكثر للحذف من السجل",
     Options = {"لا يوجد بعد"},
@@ -4559,7 +4586,6 @@ SkinTab:CreateButton({
         end
 
         if not pendingSkinDeleteConfirm then
-            -- الضغطة الأولى: تحذير فقط
             pendingSkinDeleteConfirm = true
             SkinApplyStatusLabel:Set("متأكد تبي تحذف "..#realSelection.." سكن؟ اضغط الزر مرة ثانية للتأكيد خلال 8 ثواني")
             sendToast("تأكيد الحذف", "اضغط زر الحذف مرة ثانية للتأكيد")
@@ -4567,7 +4593,6 @@ SkinTab:CreateButton({
                 pendingSkinDeleteConfirm = false
             end)
         else
-            -- الضغطة الثانية: تنفيذ الحذف فعليًا
             pendingSkinDeleteConfirm = false
             local rawNames = {}
             for _, item in ipairs(realSelection) do
@@ -4592,6 +4617,14 @@ SettingsTab:CreateSlider({
     Range = {10, 300}, Increment = 10, CurrentValue = CACHE_TTL,
     Callback = function(value) CACHE_TTL = value end,
 })
+
+----------------------------------------------------------------
+-- 14) تحميل البيانات المحفوظة عند بدء التشغيل
+----------------------------------------------------------------
+loadFavorites()
+refreshFavoritesDropdown()
+loadSkinHistory()
+refreshSkinHistoryDropdown()
 
 
 local MainTab = Window:CreateTab("الرئيسية", 44833627458)
@@ -4821,4 +4854,4 @@ loadFavorites()
 refreshFavoritesDropdown()
 loadSkinHistory()
 refreshSkinHistoryDropdown()
-end)
+end)(
