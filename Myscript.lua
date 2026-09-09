@@ -4621,11 +4621,6 @@ SettingsTab:CreateSlider({
 ----------------------------------------------------------------
 -- 14) تحميل البيانات المحفوظة عند بدء التشغيل
 ----------------------------------------------------------------
-loadFavorites()
-refreshFavoritesDropdown()
-loadSkinHistory()
-refreshSkinHistoryDropdown()
-
 
 local MainTab = Window:CreateTab("الرئيسية", 44833627458)
 
@@ -4854,4 +4849,4 @@ loadFavorites()
 refreshFavoritesDropdown()
 loadSkinHistory()
 refreshSkinHistoryDropdown()
-end)(
+end)
