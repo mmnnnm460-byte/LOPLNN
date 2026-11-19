@@ -1,4 +1,4 @@
---// UI Library
+--// UI Library v2
 local Library = {}
 
 local Players = game:GetService("Players")
@@ -11,9 +11,11 @@ Library.Theme = {
 	Element = Color3.fromRGB(45, 45, 62),
 	ElementHover = Color3.fromRGB(58, 58, 80),
 	Accent = Color3.fromRGB(120, 100, 255),
+	Indicator = Color3.fromRGB(120, 100, 255), -- لون شريط التبويب
 	Text = Color3.fromRGB(235, 235, 245),
 	SubText = Color3.fromRGB(160, 160, 180),
-	Corner = 4,
+	Corner = 6,
+	WindowCorner = 10,
 }
 local Theme = Library.Theme
 
@@ -53,10 +55,22 @@ local function getParent()
 	return Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
+local function isPress(i)
+	return i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch
+end
+
+local function isMove(i)
+	return i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch
+end
+
 --// Elements
-local function attachElements(obj, container, Window)
-	local order = 0
-	local function nextOrder() order += 1 return order end
+local function attachElements(obj, container, Window, counter)
+	counter = counter or {n = 0}
+	local function nextOrder()
+		counter.n += 1
+		return counter.n
+	end
+	obj._nextOrder = nextOrder
 
 	local function newElement(height)
 		local f = Create("Frame", {
@@ -101,6 +115,7 @@ local function attachElements(obj, container, Window)
 	function obj:AddButton(o)
 		o = o or {}
 		local f = newElement(32)
+		local hover = false
 		local btn = Create("TextButton", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
@@ -110,11 +125,26 @@ local function attachElements(obj, container, Window)
 			TextSize = 13,
 			Parent = f,
 		})
-		btn.MouseEnter:Connect(function() tween(f, {BackgroundColor3 = Theme.ElementHover}) end)
-		btn.MouseLeave:Connect(function() tween(f, {BackgroundColor3 = Theme.Element}) end)
+		btn.MouseEnter:Connect(function()
+			hover = true
+			tween(f, {BackgroundColor3 = Theme.ElementHover})
+		end)
+		btn.MouseLeave:Connect(function()
+			hover = false
+			tween(f, {BackgroundColor3 = Theme.Element})
+		end)
+		-- الجوال: ما فيه MouseLeave، فنرجع اللون عند رفع الاصبع
+		btn.InputEnded:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.Touch then
+				hover = false
+				tween(f, {BackgroundColor3 = Theme.Element})
+			end
+		end)
 		btn.MouseButton1Click:Connect(function()
 			tween(f, {BackgroundColor3 = Theme.Accent}, 0.08)
-			task.delay(0.1, function() tween(f, {BackgroundColor3 = Theme.ElementHover}) end)
+			task.delay(0.12, function()
+				tween(f, {BackgroundColor3 = hover and Theme.ElementHover or Theme.Element})
+			end)
 			safe(o.Callback)
 		end)
 		return {SetText = function(_, t) btn.Text = t end}
@@ -200,24 +230,30 @@ local function attachElements(obj, container, Window)
 		function S:Get() return value end
 
 		local dragging = false
+		local function setScroll(on)
+			local s = container:IsA("ScrollingFrame") and container or container:FindFirstAncestorWhichIsA("ScrollingFrame")
+			if s then s.ScrollingEnabled = on end
+		end
 		local function fromInput(x)
 			local rel = math.clamp((x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
 			S:Set(min + (max - min) * rel)
 		end
-		bar.InputBegan:Connect(function(i)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		f.InputBegan:Connect(function(i)
+			if isPress(i) then
 				dragging = true
+				setScroll(false) -- يمنع سحب الصفحة وقت تحريك السلايدر
 				fromInput(i.Position.X)
 			end
 		end)
 		Window:_connect(UIS.InputChanged, function(i)
-			if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			if dragging and isMove(i) then
 				fromInput(i.Position.X)
 			end
 		end)
 		Window:_connect(UIS.InputEnded, function(i)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			if dragging and isPress(i) then
 				dragging = false
+				setScroll(true)
 			end
 		end)
 		S:Set(value, true)
@@ -242,7 +278,7 @@ local function attachElements(obj, container, Window)
 			ClearTextOnFocus = false,
 			Parent = f,
 		})
-		corner(box, 3)
+		corner(box, 4)
 		box.FocusLost:Connect(function(enter)
 			if o.Flag then Window.Flags[o.Flag] = box.Text end
 			safe(o.Callback, box.Text, enter)
@@ -270,7 +306,7 @@ local function attachElements(obj, container, Window)
 			TextSize = 12,
 			Parent = f,
 		})
-		corner(kb, 3)
+		corner(kb, 4)
 		kb.MouseButton1Click:Connect(function()
 			listening = true
 			kb.Text = "..."
@@ -354,7 +390,7 @@ local function attachElements(obj, container, Window)
 					LayoutOrder = i,
 					Parent = list,
 				})
-				corner(b, 3)
+				corner(b, 4)
 				b.MouseButton1Click:Connect(function()
 					D:Set(opt)
 					open = false
@@ -382,6 +418,7 @@ function Library:CreateWindow(opts)
 	local Window = {Flags = {}, _conns = {}, _tabs = {}}
 	local size = opts.Size or UDim2.fromOffset(480, 320)
 	local toggleKey = opts.ToggleKey or Enum.KeyCode.RightShift
+	local R = Theme.WindowCorner
 
 	function Window:_connect(sig, fn)
 		local c = sig:Connect(fn)
@@ -407,12 +444,20 @@ function Library:CreateWindow(opts)
 		ClipsDescendants = true,
 		Parent = gui,
 	})
-	corner(main)
+	corner(main, R)
 
+	-- الشريط العلوي (حواف مدورة من فوق فقط)
 	local top = Create("Frame", {Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.Topbar, Parent = main})
+	corner(top, R)
+	local topFill = Create("Frame", {
+		Size = UDim2.new(1, 0, 0, R),
+		Position = UDim2.new(0, 0, 1, -R),
+		BackgroundColor3 = Theme.Topbar,
+		Parent = top,
+	})
 	Create("TextLabel", {
 		Size = UDim2.new(1, -80, 1, 0),
-		Position = UDim2.fromOffset(12, 0),
+		Position = UDim2.fromOffset(14, 0),
 		BackgroundTransparency = 1,
 		Text = opts.Title or "Library",
 		TextColor3 = Theme.Text,
@@ -433,8 +478,8 @@ function Library:CreateWindow(opts)
 			Parent = top,
 		})
 	end
-	local closeBtn = topButton("×", -32)
-	local minBtn = topButton("–", -64)
+	local closeBtn = topButton("×", -34)
+	local minBtn = topButton("–", -66)
 
 	local body = Create("Frame", {
 		Size = UDim2.new(1, 0, 1, -32),
@@ -442,16 +487,32 @@ function Library:CreateWindow(opts)
 		BackgroundTransparency = 1,
 		Parent = main,
 	})
-	local tabBar = Create("ScrollingFrame", {
+
+	-- الشريط الجانبي (حافة مدورة تحت يسار فقط)
+	local side = Create("Frame", {
 		Size = UDim2.new(0, 110, 1, 0),
 		BackgroundColor3 = Theme.Topbar,
+		Parent = body,
+	})
+	corner(side, R)
+	Create("Frame", {Size = UDim2.new(1, 0, 0, R), BackgroundColor3 = Theme.Topbar, Parent = side})
+	Create("Frame", {
+		Size = UDim2.new(0, R, 1, 0),
+		Position = UDim2.new(1, -R, 0, 0),
+		BackgroundColor3 = Theme.Topbar,
+		Parent = side,
+	})
+	local tabBar = Create("ScrollingFrame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
 		ScrollBarThickness = 0,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		Parent = body,
+		Parent = side,
 	})
 	Create("UIListLayout", {Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = tabBar})
-	Create("UIPadding", {PaddingTop = UDim.new(0, 6), PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = tabBar})
+	Create("UIPadding", {PaddingTop = UDim.new(0, 8), PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = tabBar})
+
 	local pages = Create("Frame", {
 		Size = UDim2.new(1, -110, 1, 0),
 		Position = UDim2.fromOffset(110, 0),
@@ -462,20 +523,18 @@ function Library:CreateWindow(opts)
 	-- drag
 	local dragging, dragStart, startPos
 	top.InputBegan:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		if isPress(i) then
 			dragging, dragStart, startPos = true, i.Position, main.Position
 		end
 	end)
 	Window:_connect(UIS.InputChanged, function(i)
-		if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+		if dragging and isMove(i) then
 			local d = i.Position - dragStart
 			main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
 		end
 	end)
 	Window:_connect(UIS.InputEnded, function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-			dragging = false
-		end
+		if isPress(i) then dragging = false end
 	end)
 
 	-- minimize / close / toggle key
@@ -483,6 +542,7 @@ function Library:CreateWindow(opts)
 	minBtn.MouseButton1Click:Connect(function()
 		minimized = not minimized
 		body.Visible = not minimized
+		topFill.Visible = not minimized -- وهي مصغرة تصير كل الحواف مدورة
 		tween(main, {Size = minimized and UDim2.new(size.X.Scale, size.X.Offset, 0, 32) or size}, 0.2)
 	end)
 	closeBtn.MouseButton1Click:Connect(function() Window:Destroy() end)
@@ -513,17 +573,23 @@ function Library:CreateWindow(opts)
 	function Window:Notify(n)
 		n = n or {}
 		local f = Create("Frame", {Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = Theme.Background, Parent = holder})
-		corner(f)
-		Create("Frame", {Size = UDim2.new(0, 3, 1, -12), Position = UDim2.fromOffset(6, 6), BackgroundColor3 = Theme.Accent, Parent = f})
+		corner(f, 8)
+		local accentBar = Create("Frame", {
+			Size = UDim2.new(0, 3, 1, -16),
+			Position = UDim2.fromOffset(8, 8),
+			BackgroundColor3 = Theme.Accent,
+			Parent = f,
+		})
+		corner(accentBar, 2)
 		Create("TextLabel", {
-			Size = UDim2.new(1, -24, 0, 20), Position = UDim2.fromOffset(16, 6), BackgroundTransparency = 1,
+			Size = UDim2.new(1, -28, 0, 20), Position = UDim2.fromOffset(20, 6), BackgroundTransparency = 1,
 			Text = n.Title or "Notification", TextColor3 = Theme.Text, Font = Enum.Font.GothamBold,
-			TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = f,
+			TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f,
 		})
 		Create("TextLabel", {
-			Size = UDim2.new(1, -24, 0, 20), Position = UDim2.fromOffset(16, 26), BackgroundTransparency = 1,
+			Size = UDim2.new(1, -28, 0, 20), Position = UDim2.fromOffset(20, 26), BackgroundTransparency = 1,
 			Text = n.Content or "", TextColor3 = Theme.SubText, Font = Enum.Font.Gotham,
-			TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, Parent = f,
+			TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f,
 		})
 		task.delay(n.Duration or 4, function()
 			if f.Parent then
@@ -537,8 +603,10 @@ function Library:CreateWindow(opts)
 	-- tabs
 	function Window:AddTab(name)
 		local Tab = {}
+		local counter = {n = 0}
+
 		local btn = Create("TextButton", {
-			Size = UDim2.new(1, 0, 0, 28),
+			Size = UDim2.new(1, 0, 0, 32),
 			BackgroundColor3 = Theme.Element,
 			BackgroundTransparency = 1,
 			Text = name or "Tab",
@@ -549,6 +617,18 @@ function Library:CreateWindow(opts)
 			Parent = tabBar,
 		})
 		corner(btn)
+
+		-- الشريط اللي يطلع على التبويب المحدد
+		local indicator = Create("Frame", {
+			Size = UDim2.fromOffset(3, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 5, 0.5, 0),
+			BackgroundColor3 = Theme.Indicator,
+			BackgroundTransparency = 1,
+			Parent = btn,
+		})
+		corner(indicator, 2)
+
 		local page = Create("ScrollingFrame", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
@@ -564,21 +644,22 @@ function Library:CreateWindow(opts)
 			PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 10), Parent = page,
 		})
 
-		local entry = {Button = btn, Page = page}
-		table.insert(Window._tabs, entry)
+		table.insert(Window._tabs, {Button = btn, Page = page, Bar = indicator})
 
 		function Tab:Select()
 			for _, t in ipairs(Window._tabs) do
 				t.Page.Visible = false
 				tween(t.Button, {BackgroundTransparency = 1, TextColor3 = Theme.SubText})
+				tween(t.Bar, {Size = UDim2.fromOffset(3, 0), BackgroundTransparency = 1})
 			end
 			page.Visible = true
 			tween(btn, {BackgroundTransparency = 0, TextColor3 = Theme.Text})
+			tween(indicator, {Size = UDim2.fromOffset(3, 20), BackgroundTransparency = 0}, 0.2)
 		end
 		btn.MouseButton1Click:Connect(function() Tab:Select() end)
 		if #Window._tabs == 1 then Tab:Select() end
 
-		attachElements(Tab, page, Window)
+		attachElements(Tab, page, Window, counter)
 
 		function Tab:AddSection(title)
 			local Section = {}
@@ -586,7 +667,7 @@ function Library:CreateWindow(opts)
 				Size = UDim2.new(1, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
 				BackgroundTransparency = 1,
-				LayoutOrder = 9999,
+				LayoutOrder = Tab._nextOrder(),
 				Parent = page,
 			})
 			Create("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = frame})
