@@ -49,10 +49,16 @@ local CONFIG = {
 	ResidenceFile = "Residences.txt",
 	ResidenceCache = "Residences_cache.json",
 
-	Weapons = {
+		Weapons = {
 		"Baton", "Bo Staff", "Club", "Golf Club", "Spear",
 		"War Axe", "Shovel", "Longsword", "Hammer", "Bat",
 		"Crowbar", "FireAxeV1", "Lance",
+	},
+
+	HitWeapons = {
+		"Baton", "Bo Staff", "Club", "Golf Club", "Spear",
+		"War Axe", "Shovel", "Longsword", "Hammer", "Bat",
+		"Crowbar", "FireAxeV1", "Lance", "",
 	},
 }
 
