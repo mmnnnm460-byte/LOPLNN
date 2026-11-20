@@ -58,7 +58,7 @@ local CONFIG = {
 	HitWeapons = {
 		"Baton", "Bo Staff", "Club", "Golf Club", "Spear",
 		"War Axe", "Shovel", "Longsword", "Hammer", "Bat",
-		"Crowbar", "FireAxeV1", "Lance", "",
+		"Crowbar", "FireAxeV1", "Lance", "Fist",
 	},
 }
 
